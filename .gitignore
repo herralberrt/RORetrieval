@@ -1,0 +1,42 @@
+.env
+*.pyc
+__pycache__/
+*.egg-info/
+.DS_Store
+venv/
+.venv/
+
+# Data
+data/corpus/
+data/queries/
+data/negatives/
+*.embeddings
+
+# Models
+models/*.pt
+models/*.bin
+models/*.safetensors
+
+# Results
+results/*.json
+results/*.txt
+results/*.csv
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Text files (keep only important ones)
+*.txt
+!requirements.txt
+!.env.example
