@@ -1,0 +1,6 @@
+{
+  "model": "intfloat/multilingual-e5-large",
+  "num_docs": 921,
+  "dim": 1024,
+  "metric": "inner_product_on_normalized (cosine)"
+}

@@ -7,10 +7,11 @@
   "run_task3": true,
   "task_config": {
     "task1_queries": {
-      "prompt_version": "V1",
+      "prompt_version": "v1",
       "queries_per_document": 2,
       "temperature": 0.7,
-      "model": "gpt-3.5-turbo"
+      "model": null,
+      "limit": null
     },
     "task2_triplets": {
       "min_similarity": 0.8,
@@ -18,7 +19,7 @@
       "hard_negative_mining": true
     },
     "task3_filter": {
-      "min_overlap": 0.5,
+      "max_overlap": 0.5,
       "min_diversity": 0.3,
       "min_entailment": 0.6
     }

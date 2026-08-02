@@ -39,7 +39,10 @@ def download_embeddings_model():
     try:
         from sentence_transformers import SentenceTransformer
         
-        model_name = 'sentence-transformers/multilingual-e5-large'
+        # multilingual-e5-large is published by intfloat, not sentence-transformers.
+        model_name = os.getenv(
+            'EMBEDDINGS_MODEL', 'intfloat/multilingual-e5-large'
+        )
         print(f"  Downloading {model_name}...")
         model = SentenceTransformer(model_name)
         print(f"  ✓ Model ready: {model_name}")

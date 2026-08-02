@@ -46,8 +46,9 @@ from typing import Any, Dict, List
 
 from tqdm import tqdm
 
-# Reuse the project's IO helpers.
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Reuse the project's IO helpers (this file lives in src/studies/marco_methods/,
+# so the project's `src/` package dir is three levels up).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from utils import load_jsonl, save_jsonl  # noqa: E402
 
 
@@ -143,56 +144,40 @@ class QueryGenerator:
     """
     Generates Romanian queries for documents.
 
-    When `use_llm` is set and an OpenAI key is available, it uses the Romanian
-    prompt from src/task1_prompt.py to generate a natural question. Otherwise it
-    falls back to the source-aware Romanian templates in `make_query`.
+    With `use_llm` set and an API key in .env (see src/llm_client.py), it uses
+    the Romanian V1 prompt from src/task1_prompt.py. Otherwise -- and whenever
+    a call fails -- it falls back to the source-aware templates in `make_query`.
     """
 
     def __init__(self, use_llm: bool = False):
         self.use_llm = use_llm
         self._client = None
-        self._model = "gpt-4"
-        self._prompt_v1 = None
         if use_llm:
             self._init_llm()
 
     def _init_llm(self) -> None:
         try:
-            from openai import OpenAI  # openai>=1.x
-            from utils import get_config
-            from task1_prompt import PROMPT_V1_TEMPLATE
+            from llm_client import get_client
 
-            cfg = get_config()
-            api_key = cfg.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
-            if not api_key or api_key.startswith("sk-your-key"):
-                print("   [QueryGenerator] No OPENAI_API_KEY -> using RO templates")
+            client = get_client()
+            if not client.available:
+                print(f"   [QueryGenerator] {client.unavailable_reason}")
+                print("   [QueryGenerator] -> falling back to RO templates")
                 self.use_llm = False
                 return
-            self._client = OpenAI(api_key=api_key)
-            self._model = cfg.get("OPENAI_MODEL", "gpt-4")
-            self._prompt_v1 = PROMPT_V1_TEMPLATE
+            self._client = client
+            print(f"   [QueryGenerator] {client.describe()}")
         except Exception as e:  # missing deps / import error -> fall back
             print(f"   [QueryGenerator] LLM unavailable ({e}) -> using RO templates")
             self.use_llm = False
 
     def generate(self, doc: Dict[str, Any], index: int = 0) -> str:
         if self.use_llm and self._client is not None:
-            try:
-                prompt = self._prompt_v1.format(
-                    title=doc.get("title", ""), content=doc.get("content", "")
-                )
-                resp = self._client.chat.completions.create(
-                    model=self._model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.8,
-                )
-                text = resp.choices[0].message.content.strip()
-                # Take the first non-empty generated question line.
-                first = next((l.strip() for l in text.splitlines() if l.strip()), "")
-                if first:
-                    return first
-            except Exception as e:
-                print(f"   [QueryGenerator] LLM call failed ({e}) -> template")
+            from task1_prompt import build_prompt
+
+            queries = self._client.generate_queries(build_prompt(doc, "v1"))
+            if queries:
+                return queries[0]
         return make_query(doc, index)
 
 

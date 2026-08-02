@@ -12,8 +12,9 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import sys
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from utils import load_jsonl, save_jsonl, ensure_dir
+from llm_client import get_client
 
 
 # ============================================================
@@ -117,60 +118,82 @@ Răspuns:
 """
 
 
+# Prompt registry: version key -> (template, version label, content char limit)
+PROMPTS = {
+    "v1": (PROMPT_V1_SIMPLE, "v1", 2000),
+    "v2": (PROMPT_V2_GROUNDED, "v2_grounded", 2000),
+    "v3": (PROMPT_V3_TITLE_AS_QUESTION, "v3_title", 1000),
+}
+
+# Backwards-compatible alias used by src/studies/marco_methods/.
+PROMPT_V1_TEMPLATE = PROMPT_V1_SIMPLE
+
+
+def build_prompt(doc: Dict[str, Any], version: str = "v1") -> str:
+    """Fill a prompt template with a document's title and content."""
+    template, _, limit = PROMPTS.get(version, PROMPTS["v1"])
+    return template.format(
+        title=doc.get("title", ""),
+        content=doc.get("content", "")[:limit],
+    )
+
+
 class QueryGenerator:
-    """Generate queries from documents using LLM."""
-    
-    def __init__(self, model: str = "gpt-4", temperature: float = 0.8):
-        """Initialize query generator."""
-        self.model = model
+    """
+    Generate queries from documents using an LLM.
+
+    The API key lives in .env -- see src/llm_client.py. If no key is set, the
+    generator still builds the prompts and returns records with
+    status="no_llm", so the pipeline runs end-to-end without credentials.
+    """
+
+    def __init__(self, model: Optional[str] = None, temperature: float = 0.8,
+                 provider: Optional[str] = None):
         self.temperature = temperature
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.org_id = os.getenv("OPENAI_ORG_ID")
-    
+        self.client = get_client(model=model, temperature=temperature,
+                                 provider=provider)
+        self.model = self.client.model
+
+    @property
+    def available(self) -> bool:
+        return self.client.available
+
+    def describe(self) -> str:
+        return self.client.describe()
+
+    def generate(self, doc: Dict[str, Any], version: str = "v1",
+                 temperature: Optional[float] = None) -> Dict[str, Any]:
+        """Generate queries for one document with one prompt version."""
+        _, label, _ = PROMPTS.get(version, PROMPTS["v1"])
+        temp = self.temperature if temperature is None else temperature
+        prompt = build_prompt(doc, version)
+
+        queries = self.client.generate_queries(prompt, temperature=temp)
+
+        return {
+            "doc_id": doc.get("doc_id"),
+            "title": doc.get("title"),
+            "source": doc.get("source"),
+            "version": label,
+            "temperature": temp,
+            "model": self.model,
+            "queries": queries,
+            "num_queries": len(queries),
+            "status": "ok" if queries else ("failed" if self.available else "no_llm"),
+        }
+
+    # Kept for backwards compatibility with the original API.
     def generate_queries_v1(self, doc: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate queries using V1 simple prompt."""
-        prompt = PROMPT_V1_SIMPLE.format(
-            title=doc.get("title", ""),
-            content=doc.get("content", "")[:2000]  # Limit content
-        )
-        return {
-            "doc_id": doc.get("doc_id"),
-            "version": "v1",
-            "temperature": self.temperature,
-            "prompt": prompt,
-            "queries": [],  # Will be filled by LLM
-            "status": "pending"
-        }
-    
+        """Generate queries using the V1 simple prompt."""
+        return self.generate(doc, "v1")
+
     def generate_queries_v2(self, doc: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate queries using V2 grounded prompt."""
-        prompt = PROMPT_V2_GROUNDED.format(
-            title=doc.get("title", ""),
-            content=doc.get("content", "")[:2000]
-        )
-        return {
-            "doc_id": doc.get("doc_id"),
-            "version": "v2_grounded",
-            "temperature": self.temperature,
-            "prompt": prompt,
-            "queries": [],
-            "status": "pending"
-        }
-    
+        """Generate queries using the V2 grounded prompt."""
+        return self.generate(doc, "v2")
+
     def generate_queries_v3(self, doc: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate queries using V3 title-as-question prompt."""
-        prompt = PROMPT_V3_TITLE_AS_QUESTION.format(
-            title=doc.get("title", ""),
-            content=doc.get("content", "")[:1000]
-        )
-        return {
-            "doc_id": doc.get("doc_id"),
-            "version": "v3_title",
-            "temperature": self.temperature,
-            "prompt": prompt,
-            "queries": [],
-            "status": "pending"
-        }
+        """Generate queries using the V3 title-as-question prompt."""
+        return self.generate(doc, "v3")
 
 
 class SampleQueryGenerator:
@@ -248,32 +271,119 @@ def generate_sample_queries(input_file: str = "data/corpus/all_documents_combine
     print("\n" + "="*60)
 
 
+def generate_llm_queries(input_file: str = "data/corpus/all_documents_combined.jsonl",
+                         output_file: str = "data/queries_generated.jsonl",
+                         versions: Optional[List[str]] = None,
+                         temperatures: Optional[List[float]] = None,
+                         limit: Optional[int] = None,
+                         model: Optional[str] = None,
+                         provider: Optional[str] = None):
+    """
+    Generate queries for every document with a real LLM.
+
+    Needs an API key in .env -- see src/llm_client.py. Writes one record per
+    (document, prompt version, temperature).
+    """
+    from tqdm import tqdm
+
+    versions = versions or ["v1", "v2", "v3"]
+    temperatures = temperatures or [0.8]
+
+    print("\n" + "=" * 60)
+    print("  Task 1: LLM Query Generation")
+    print("=" * 60)
+
+    generator = QueryGenerator(model=model, provider=provider)
+    print(f"\n  {generator.describe()}")
+
+    if not generator.available:
+        print("\n  Nothing to do without an API key. To enable:")
+        print("    1. cp .env.example .env")
+        print("    2. add ANTHROPIC_API_KEY=sk-ant-...  (or OPENAI_API_KEY=sk-...)")
+        print("\n  Meanwhile you can run the offline sample generator:")
+        print("    python src/task1_prompt.py --sample --num 10\n")
+        return
+
+    docs = load_jsonl(input_file)
+    if limit:
+        docs = docs[:limit]
+
+    total = len(docs) * len(versions) * len(temperatures)
+    print(f"\n  Documents: {len(docs)}")
+    print(f"  Versions:  {versions}")
+    print(f"  Temps:     {temperatures}")
+    print(f"  LLM calls: {total}\n")
+
+    output = []
+    ok = 0
+    with tqdm(total=total, desc="Generating queries") as bar:
+        for doc in docs:
+            for version in versions:
+                for temp in temperatures:
+                    record = generator.generate(doc, version, temperature=temp)
+                    output.append(record)
+                    ok += record["status"] == "ok"
+                    bar.update(1)
+
+    save_jsonl(output, output_file)
+    print(f"\n  Saved {len(output)} records ({ok} successful) to {output_file}")
+    print("=" * 60 + "\n")
+
+
 def main():
     """Main function."""
     import argparse
-    
-    parser = argparse.ArgumentParser(description="Task 1: Query Generation")
-    parser.add_argument('--sample', action='store_true', help='Generate sample queries')
+
+    parser = argparse.ArgumentParser(
+        description="Task 1: Query Generation",
+        epilog="Set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env to use --llm."
+    )
+    parser.add_argument('--sample', action='store_true',
+                        help='Generate offline placeholder queries (no API key needed)')
+    parser.add_argument('--llm', action='store_true',
+                        help='Generate real queries with an LLM (needs an API key in .env)')
     parser.add_argument('--num', type=int, default=5, help='Number of samples')
+    parser.add_argument('--limit', type=int, default=None,
+                        help='Only process the first N documents (--llm)')
+    parser.add_argument('--versions', type=str, default='v1,v2,v3',
+                        help='Comma-separated prompt versions (--llm)')
+    parser.add_argument('--temperatures', type=str, default='0.8',
+                        help='Comma-separated temperature values (--llm)')
+    parser.add_argument('--model', type=str, default=None,
+                        help='Override the model id (default: from .env)')
+    parser.add_argument('--provider', type=str, default=None,
+                        choices=['anthropic', 'openai'],
+                        help='Force a provider (default: auto-detect from .env)')
     parser.add_argument('--input', type=str, default='data/corpus/all_documents_combined.jsonl')
-    parser.add_argument('--output', type=str, default='data/queries_sample.jsonl')
-    
+    parser.add_argument('--output', type=str, default=None)
+
     args = parser.parse_args()
-    
-    if args.sample:
-        generate_sample_queries(args.input, args.output, args.num)
+
+    if args.llm:
+        generate_llm_queries(
+            input_file=args.input,
+            output_file=args.output or 'data/queries_generated.jsonl',
+            versions=[v.strip() for v in args.versions.split(',') if v.strip()],
+            temperatures=[float(t) for t in args.temperatures.split(',') if t.strip()],
+            limit=args.limit,
+            model=args.model,
+            provider=args.provider,
+        )
+    elif args.sample:
+        generate_sample_queries(args.input, args.output or 'data/queries_sample.jsonl', args.num)
     else:
-        print("\n" + "="*60)
-        print("  Task 1: Query Generation - Meeting 1")
-        print("="*60)
-        print("\n Usage:")
-        print("   python task1_prompt.py --sample          # Generate sample queries")
-        print("   python task1_prompt.py --sample --num 10 # 10 samples")
-        print("\n  Full LLM integration:")
-        print("   - Set OPENAI_API_KEY in .env")
-        print("   - Requires: sentence-transformers, openai")
-        print("   - Next: Implement QueryGenerator.call_llm()")
-        print("\n" + "="*60)
+        client = get_client()
+        print("\n" + "=" * 60)
+        print("  Task 1: Query Generation")
+        print("=" * 60)
+        print(f"\n  {client.describe()}")
+        print("\n  Usage:")
+        print("    python src/task1_prompt.py --sample --num 10   # offline placeholders")
+        print("    python src/task1_prompt.py --llm --limit 20    # real LLM queries")
+        print("\n  To enable the LLM:")
+        print("    1. cp .env.example .env")
+        print("    2. add ANTHROPIC_API_KEY=sk-ant-...  (or OPENAI_API_KEY=sk-...)")
+        print("\n" + "=" * 60)
 
 
 if __name__ == '__main__':

@@ -9,20 +9,26 @@ This script:
 
 import json
 import argparse
+import os
+import sys
+from datetime import datetime
 from typing import List, Dict, Any, Tuple
 from pathlib import Path
 from tqdm import tqdm
 import numpy as np
 from collections import defaultdict
-import statistics
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from utils import load_jsonl, save_jsonl
 
 
 class TripletEvaluator:
 
-    def __init__(self, min_overlap: float = 0.5,
+    def __init__(self, max_overlap: float = 0.5,
                  min_diversity: float = 0.3, min_entailment: float = 0.6):
-
-        self.min_overlap = min_overlap
+        # max_overlap is a ceiling: a query that overlaps the document too much
+        # is a copy-paste of the source text, not a real retrieval query.
+        self.max_overlap = max_overlap
         self.min_diversity = min_diversity
         self.min_entailment = min_entailment
     
@@ -34,8 +40,8 @@ class TripletEvaluator:
         metrics = triplet['metrics']
         issues = []
         
-        # Check n-gram overlap
-        if metrics.get('ngram_overlap', 0) >= self.min_overlap:
+        # Check n-gram overlap (too much overlap = query copied from the document)
+        if metrics.get('ngram_overlap', 0) >= self.max_overlap:
             issues.append(f"High overlap ({metrics['ngram_overlap']:.3f})")
         
         # Check diversity
@@ -100,10 +106,10 @@ class TripletEvaluator:
         metric_summary = {}
         for key, values in metric_stats.items():
             metric_summary[key] = {
-                "mean": np.mean(values),
-                "std": np.std(values),
-                "min": min(values),
-                "max": max(values)
+                "mean": float(np.mean(values)),
+                "std": float(np.std(values)),
+                "min": float(min(values)),
+                "max": float(max(values))
             }
         
         # Dataset distribution
@@ -121,7 +127,7 @@ class TripletEvaluator:
         # Generate report
         report = {
             "overview": {
-                "timestamp": Path.cwd(),
+                "timestamp": datetime.now().isoformat(timespec='seconds'),
                 "total_triplets": stats['total'],
                 "valid_triplets": stats['valid'],
                 "invalid_triplets": stats['invalid'],
@@ -131,7 +137,7 @@ class TripletEvaluator:
             "dataset_distribution": dict(dataset_dist),
             "version_distribution": dict(version_dist),
             "thresholds": {
-                "min_overlap": self.min_overlap,
+                "max_overlap": self.max_overlap,
                 "min_diversity": self.min_diversity,
                 "min_entailment": self.min_entailment
             }
@@ -154,8 +160,9 @@ def main():
     parser.add_argument('--triplets',type=str, default='data/triplets_meeting1.jsonl',
                         help='Path to triplets file')
   
-    parser.add_argument('--min_overlap', type=float, default=0.5,
-                        help='Minimum acceptable n-gram overlap')
+    parser.add_argument('--max_overlap', type=float, default=0.5,
+                        help='Maximum acceptable n-gram overlap (above this, the '
+                             'query is too close a copy of the document)')
 
     parser.add_argument('--min_diversity', type=float, default=0.3,
                         help='Minimum diversity score')
@@ -175,28 +182,33 @@ def main():
     
     print(f"\n Task 3: Filter & Evaluate Triplets")
     print(f"   Input: {args.triplets}")
-    print(f"   Min overlap: {args.min_overlap}")
+    print(f"   Max overlap: {args.max_overlap}")
     print(f"   Min diversity: {args.min_diversity}")
     print(f"   Min entailment: {args.min_entailment}")
     print("-" * 60)
-    
+
     evaluator = TripletEvaluator(
-        min_overlap=args.min_overlap,
+        max_overlap=args.max_overlap,
         min_diversity=args.min_diversity,
         min_entailment=args.min_entailment
     )
-    
-    # TODO: Load triplets
-    # all_triplets = load_jsonl(args.triplets)
-    
-    # TODO: Filter and evaluate
-    # valid_triplets, invalid_triplets = evaluator.filter_triplets(all_triplets)
-    
-    # TODO: Save and report
-    # save_jsonl(valid_triplets, args.output)
-    # evaluator.generate_report(all_triplets, valid_triplets, invalid_triplets, args.report)
-    
-    print(f"\n Task 3 configured!")
+
+    if not os.path.exists(args.triplets):
+        print(f"\n Triplets file not found: {args.triplets}")
+        print("   Run: python src/task2_triplets.py --queries data/queries_generated.jsonl")
+        return
+
+    all_triplets = load_jsonl(args.triplets)
+    print(f"\n Loaded {len(all_triplets)} triplets")
+
+    valid_triplets, invalid_triplets = evaluator.filter_triplets(all_triplets)
+
+    save_jsonl(valid_triplets, args.output)
+    print(f"\n Saved {len(valid_triplets)} filtered triplets to {args.output}")
+
+    evaluator.generate_report(
+        all_triplets, valid_triplets, invalid_triplets, args.report
+    )
 
 
 if __name__ == '__main__':

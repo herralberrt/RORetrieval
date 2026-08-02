@@ -6,16 +6,18 @@ from datetime import datetime
 import sys
 import argparse
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+_SRC_DIR = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(_SRC_DIR))
 from utils import ensure_dir, save_json
 
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-except ImportError as e:
-    print(f"Warning: Could not import task modules: {e}")
-
-from miracl_downloader import MIRACLDownloader
-from miracl_preprocessor import MIRACLPreprocessor
+    # Package-relative import (works as `src.studies.miracl`).
+    from .miracl_downloader import MIRACLDownloader
+    from .miracl_preprocessor import MIRACLPreprocessor
+except ImportError:
+    # Flat import: this directory is on sys.path (how run.sh invokes it).
+    from miracl_downloader import MIRACLDownloader
+    from miracl_preprocessor import MIRACLPreprocessor
 
 
 class MIRACLPipeline:
@@ -96,15 +98,37 @@ class MIRACLPipeline:
         try:
             self.log(f"Input corpus: {corpus_file}")
             self.log(f"Output queries file: {queries_file}")
-            
-            self.log("Task 1 would generate 2-3 queries per document using LLM prompts")
-            self.log("   (Requires LLM API key and prompts configuration)")
-            
+
+            from task1_prompt import generate_llm_queries
+            from llm_client import get_client
+
+            client = get_client()
+            self.log(client.describe())
+
+            if not client.available:
+                self.log("Skipping Task 1: no API key. Put ANTHROPIC_API_KEY or "
+                         "OPENAI_API_KEY in .env to enable it.", "WARNING")
+                return {
+                    "status": "skipped",
+                    "reason": client.unavailable_reason,
+                }
+
+            task_cfg = self.config.get("task_config", {}).get("task1_queries", {})
+            generate_llm_queries(
+                input_file=corpus_file,
+                output_file=queries_file,
+                versions=[task_cfg.get("prompt_version", "v1").lower()],
+                temperatures=[task_cfg.get("temperature", 0.8)],
+                limit=task_cfg.get("limit"),
+                model=task_cfg.get("model"),
+            )
+
             return {
-                "status": "configured",
-                "message": "Task 1 ready for execution (requires LLM setup)"
+                "status": "success",
+                "output": queries_file,
+                "model": client.model,
             }
-            
+
         except Exception as e:
             self.log(f"Task 1 failed: {str(e)}", "ERROR")
             raise
