@@ -1,1 +1,225 @@
-# RORetrieval
+# Information Retrieval Pipeline for Romanian Text
+
+Complete implementation of a 4-step IR pipeline for training multilingual retrieval models on Romanian corpus.
+
+## Quick Start
+
+### Prerequisites
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or: venv\Scripts\activate  # Windows
+
+pip install -r src/requirements.txt
+```
+
+### Full Pipeline Execution
+```bash
+cd src
+python ir_pipeline.py --corpus data/corpus/all_documents_combined.jsonl --queries 1000 --epochs 3
+```
+
+### Individual Steps
+
+**Step 1: Build Faiss Index and Generate Triplets**
+```bash
+python faiss_indexer.py --corpus data/corpus/all_documents_combined.jsonl --build
+python triplet_generator.py --corpus data/corpus/all_documents_combined.jsonl --queries 1000
+```
+
+**Step 2: Evaluate Quality Metrics**
+```bash
+python quality_metrics.py --triplets results/triplets/triplets.jsonl
+```
+
+**Step 3: Split Data into Train/Val/Test**
+```bash
+python data_splitter.py --triplets results/triplets/triplets.jsonl
+```
+
+**Step 4: Baseline Evaluation**
+```bash
+python evaluate_models.py --corpus data/corpus/all_documents_combined.jsonl --triplets results/splits/test_triplets.jsonl
+```
+
+**Step 5: Train Model**
+```bash
+python train_model.py --train-triplets results/splits/train_triplets.jsonl --val-triplets results/splits/val_triplets.jsonl --epochs 3
+```
+
+## Pipeline Architecture
+
+### 1. Triplet Generation
+- **Faiss Indexer**: Builds semantic search index using multilingual embeddings
+- **Query Generator**: Creates synthetic Romanian queries from templates
+- **Triplet Generator**: Mines hard negative passages using semantic similarity
+
+### 2. Quality Metrics
+- Lexical overlap (Jaccard similarity)
+- Token-level analysis
+- Content statistics (length, diversity)
+- Difficulty scoring based on embedding distance
+
+### 3. Data Splitting
+- 70% training triplets
+- 15% validation triplets  
+- 15% test triplets
+- Reproducible with fixed random seed
+
+### 4. Baseline Evaluation
+- Uses pretrained multilingual-MiniLM-L12-v2 model
+- Computes retrieval metrics: nDCG@10, MRR, P@10, R@10, MAP
+- Evaluates on test set
+
+### 5. Model Training
+- Triplet loss with margin=0.5
+- Configurable epochs and batch size
+- Validates on val set after each epoch
+- Tracks training history
+
+## Output Structure
+
+```
+results/
+├── faiss/
+│   ├── corpus.index          # Semantic index
+│   └── id_mapping.json       # Document ID mapping
+├── triplets/
+│   └── triplets.jsonl        # Generated triplets
+├── quality_metrics/
+│   ├── triplet_scores.jsonl  # Per-triplet metrics
+│   └── quality_report.json   # Summary report
+├── splits/
+│   ├── train_triplets.jsonl  # 70% training data
+│   ├── val_triplets.jsonl    # 15% validation data
+│   ├── test_triplets.jsonl   # 15% test data
+│   └── split_stats.json      # Split statistics
+├── evaluation/
+│   ├── metrics.jsonl         # Per-query metrics
+│   └── evaluation_report.json# Summary evaluation
+├── trained_model/
+│   └── training_history.json # Training loss history
+├── comparison/
+│   └── comparison_report.json# Baseline vs fine-tuned comparison
+└── pipeline_summary.json     # Pipeline execution summary
+```
+
+## Triplet Format
+
+Each triplet contains:
+```json
+{
+  "query_id": "q_000000",
+  "query": "Cum se face escribi un articol?",
+  "positive_doc_id": "cc_001959",
+  "positive_title": "Tutorial: Cum să devii mai productiv",
+  "positive_content": "...",
+  "negative_doc_id": "cc_002311",
+  "negative_title": "Tutorial: Cum să construiești o echipă",
+  "negative_content": "...",
+  "difficulty": 16.66
+}
+```
+
+## Corpus Statistics
+
+- **Total Documents**: 2818
+  - Recipes (HuggingFace): 818
+  - Synthetic News: 1000
+  - Synthetic Web Documents: 1000
+
+## Model Configuration
+
+- **Embedding Model**: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
+- **Embedding Dimension**: 384
+- **Index Type**: FAISS IndexFlatL2 (L2 distance)
+- **Loss Function**: Triplet Margin Loss
+- **Margin**: 0.5
+
+## Performance Metrics
+
+### Baseline (Pretrained Model)
+- nDCG@10: 0.2201
+- MRR: 1.0000
+- P@10: 0.1000
+- R@10: 1.0000
+- MAP: 1.0000
+
+### Timing Estimates
+- Faiss Indexing: ~2 minutes (2818 documents)
+- Triplet Generation: ~1 minute (1000 queries)
+- Quality Metrics: <1 second
+- Baseline Evaluation: ~15 seconds
+- Model Training: ~15 minutes per epoch (3 epochs = 45 minutes)
+
+## Language Support
+
+Currently configured for Romanian (ro). To adapt for other languages:
+1. Change corpus source in `download_datasets.py`
+2. Update query templates in `triplet_generator.py`
+3. The multilingual model supports 50+ languages
+
+## Files Reference
+
+| File | Purpose |
+|------|---------|
+| `ir_pipeline.py` | Main pipeline orchestrator |
+| `faiss_indexer.py` | Semantic index building & searching |
+| `triplet_generator.py` | Query and triplet generation |
+| `quality_metrics.py` | Triplet quality evaluation |
+| `data_splitter.py` | Train/val/test splitting |
+| `evaluate_models.py` | Retrieval evaluation metrics |
+| `train_model.py` | Model training with triplet loss |
+| `model_comparison.py` | Baseline vs fine-tuned comparison |
+| `utils.py` | Shared utilities |
+
+## Advanced Usage
+
+### Custom Model
+```bash
+python train_model.py \
+  --model "your-model-name" \
+  --train-triplets results/splits/train_triplets.jsonl \
+  --epochs 5 \
+  --batch-size 16
+```
+
+### Adjust Query Count
+```bash
+python triplet_generator.py --queries 5000 --hard-negatives 5
+```
+
+### Change Split Ratio
+```bash
+python data_splitter.py --train-ratio 0.8 --val-ratio 0.1
+```
+
+## Troubleshooting
+
+**Out of Memory**: Reduce batch size in `train_model.py`
+```bash
+python train_model.py --batch-size 16
+```
+
+**Index Not Found**: Rebuild Faiss index
+```bash
+python faiss_indexer.py --corpus data/corpus/all_documents_combined.jsonl --build
+```
+
+**Slow Evaluation**: Use fewer test triplets
+```bash
+python evaluate_models.py --triplets results/splits/test_triplets_small.jsonl
+```
+
+## Future Enhancements
+
+1. Multi-GPU training support
+2. Hard negative mining strategies
+3. Negative sampling methods
+4. Fine-tuning schedules
+5. Cross-lingual evaluation
+6. Production model serialization
+
+## License
+
+This project is part of the NLPSummerSchool RORetrieval initiative.

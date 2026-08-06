@@ -1,12 +1,19 @@
+# Environment
 .env
+.env.example
+venv/
+.venv/
+env/
+
+# Python
 *.pyc
 __pycache__/
 *.egg-info/
-.DS_Store
-venv/
-.venv/
+*.egg
+dist/
+build/
 
-# Data
+# Data directories
 data/corpus/
 data/queries/
 data/negatives/
@@ -16,11 +23,13 @@ data/negatives/
 models/*.pt
 models/*.bin
 models/*.safetensors
+checkpoints/
 
-# Results
-results/*.json
-results/*.txt
-results/*.csv
+# Results (keep structure, ignore large files)
+results/**/*.pt
+results/**/*.bin
+results/**/*.pkl
+results/faiss/*.index
 
 # Notebooks
 .ipynb_checkpoints/
@@ -31,12 +40,16 @@ results/*.csv
 .idea/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Logs
 *.log
 logs/
 
-# Text files (keep only important ones)
-*.txt
+# Keep important files
 !requirements.txt
-!.env.example
