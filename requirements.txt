@@ -31,3 +31,5 @@ nltk==3.8.1
 requests==2.31.0
 matplotlib==3.8.0
 seaborn==0.13.0
+feedparser==6.0.10
+beautifulsoup4==4.12.2
