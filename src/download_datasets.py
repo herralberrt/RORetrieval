@@ -1,24 +1,94 @@
 import json
 import os
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from tqdm import tqdm
 import sys
-import random
+from abc import ABC, abstractmethod
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import save_jsonl, ensure_dir
 
 
-class DatasetDownloader:
+class CategoryDatasetManager:
+    """Manages dynamic category directories and dataset organization."""
     
-    def __init__(self, output_dir: str = "data/corpus"):
-        self.output_dir = output_dir
-        ensure_dir(output_dir)
-        self.doc_counter = 0
+    def __init__(self, categories_dir: str = "data/categories"):
+        self.categories_dir = categories_dir
+        ensure_dir(categories_dir)
+        self.category_counters = {}
     
-    def download_recipes_huggingface(self) -> List[Dict[str, Any]]:
+    def get_category_dir(self, category: str) -> str:
+        """Get or create category directory."""
+        category_dir = os.path.join(self.categories_dir, category)
+        ensure_dir(category_dir)
+        return category_dir
+    
+    def save_category_documents(
+        self, 
+        documents: List[Dict[str, Any]], 
+        category: str, 
+        filename: str = None
+    ) -> str:
+        """Save documents to category directory."""
+        if filename is None:
+            filename = f"{category}.jsonl"
+        
+        category_dir = self.get_category_dir(category)
+        filepath = os.path.join(category_dir, filename)
+        save_jsonl(documents, filepath)
+        print(f"Saved {len(documents)} documents to: {filepath}")
+        return filepath
+    
+    def get_next_doc_id(self, category: str, prefix: str = None) -> str:
+        """Generate next document ID for category."""
+        if category not in self.category_counters:
+            self.category_counters[category] = 0
+        
+        if prefix is None:
+            prefix = category[:3]  # Use first 3 letters of category
+        
+        doc_id = f"{prefix}_{self.category_counters[category]:06d}"
+        self.category_counters[category] += 1
+        return doc_id
+
+
+class BaseDatasetDownloader(ABC):
+    """Base class for dataset downloaders."""
+    
+    def __init__(self, manager: CategoryDatasetManager):
+        self.manager = manager
+        self.category = self._get_category_name()
+        self.limit = None  # Can be overridden per instance
+    
+    @abstractmethod
+    def _get_category_name(self) -> str:
+        """Return the category name for this dataset."""
+        pass
+    
+    @abstractmethod
+    def download(self) -> List[Dict[str, Any]]:
+        """Download and process dataset."""
+        pass
+    
+    def set_limit(self, limit: int) -> None:
+        """Set document limit for this downloader."""
+        self.limit = limit if limit > 0 else None
+    
+    def save(self, documents: List[Dict[str, Any]]) -> None:
+        """Save documents to category."""
+        self.manager.save_category_documents(documents, self.category)
+
+
+class RecipesDownloader(BaseDatasetDownloader):
+    """Downloader for Romanian recipes dataset."""
+    
+    def _get_category_name(self) -> str:
+        return "recipes"
+    
+    def download(self) -> List[Dict[str, Any]]:
         print("\nDownloading recipes from HuggingFace...")
+        print("Dataset: BlackKakapo/recipes-ro")
         
         try:
             from datasets import load_dataset
@@ -28,228 +98,469 @@ class DatasetDownloader:
             documents = []
             for idx, item in enumerate(tqdm(dataset, desc="Processing recipes")):
                 doc = {
-                    "doc_id": f"recipe_{self.doc_counter:06d}",
+                    "doc_id": self.manager.get_next_doc_id(self.category, "rec"),
                     "title": item.get("0", f"Recipe {idx}"),
                     "ingredients": item.get("1", ""),
                     "content": item.get("2", ""),
-                    "source": "recipes-ro",
+                    "source": "BlackKakapo/recipes-ro",
                     "original_id": idx
                 }
                 documents.append(doc)
-                self.doc_counter += 1
             
             print(f"Downloaded {len(documents)} recipes")
             return documents
             
         except Exception as e:
             print(f"Error downloading recipes: {e}")
-            return []
+            raise
+
+
+class RoStoriesDownloader(BaseDatasetDownloader):
+    """Downloader for Romanian Stories dataset."""
     
-    def generate_synthetic_news(self, count: int = 1000) -> List[Dict[str, Any]]:
-        print(f"\nGenerating {count} synthetic news articles...")
-        
-        news_templates = [
-            "Guvernul anunță noi măsuri pentru {topic}",
-            "Ministrul {ministry} dezvaluie planuri privind {topic}",
-            "Noi statistici arată creștere în {topic}",
-            "Experți: {topic} va afecta economia în 2025",
-            "București: {topic} devine prioritate politică",
-            "România și UE colaborează pe {topic}",
-            "Companii locale investesc în {topic}",
-            "Sondaj: cetățenii doresc mai mult focus pe {topic}",
-            "Conferință internațională despre {topic} în Cluj",
-            "Start-up-uri românești inovează în {topic}",
-        ]
-        
-        content_templates = [
-            "Intr-o declarație de astazi, autoritățile au subliniat importanța {topic}. Reprezentanții guvernului au anunțat că vor aloca resurse semnificative pentru a aborda această problemă. Experții susțin că măsurile propuse sunt urgente și necesare.",
-            "Un nou raport privind {topic} dezvăluie o situație complexă. Datele colectate de-a lungul anului sugerează o tendință crescătoare. Specialiștii recomandă o abordare holistică pentru a rezolva problemele identificate.",
-            "Companii din sector privat se aliniază cu politicile privind {topic}. Investițiile s-au dublat în ultimul an. Prognozele pentru perioada viitoare sunt optimiste, conform analiștilor de piață.",
-            "Parlamentul dezbate o nouă legislație asupra {topic}. Deputații au ridicat multiple preocupări în discursurile lor. Se așteaptă o decizie în următoarele săptămâni.",
-            "Conferința de la Bruxelles a rezultat în angajamente ferme privind {topic}. Delegații din 27 de state membre au semnat un acord-cadru. Implementarea va începe cu efectul imediat.",
-        ]
-        
-        topics = [
-            "educație digitală", "sănătate publică", "mediu și schimbări climatice",
-            "agricultura sustenabilă", "energie verde", "inovație tehnologică",
-            "transporturi ecologice", "reabilitare urbană", "turism cultural",
-            "industrie locală", "cercetare științifică", "protecția consumatorilor",
-            "ocuparea forței de muncă", "inegalități sociale", "infrastructură digitală",
-            "securitate cibernetică", "comerț electronic", "turism rural",
-            "producție locală", "deschiderea piețelor", "dezvoltare regională",
-        ]
-        
-        ministries = ["Educației", "Sănătății", "Mediului", "Economiei", "Muncii", "Energiei", "Transportului"]
-        
-        documents = []
-        for i in tqdm(range(count), desc="Generating news"):
-            doc = {
-                "doc_id": f"news_{self.doc_counter:06d}",
-                "title": random.choice(news_templates).format(
-                    topic=random.choice(topics),
-                    ministry=random.choice(ministries)
-                ),
-                "content": random.choice(content_templates).format(
-                    topic=random.choice(topics)
-                ),
-                "source": "news_ro",
-                "original_id": i
-            }
-            documents.append(doc)
-            self.doc_counter += 1
-        
-        print(f"Generated {len(documents)} synthetic news articles")
-        return documents
+    def _get_category_name(self) -> str:
+        return "stories"
     
-    def generate_synthetic_commoncrawl(self, count: int = 1000) -> List[Dict[str, Any]]:
-        print(f"\nGenerating {count} synthetic web documents...")
+    def download(self) -> List[Dict[str, Any]]:
+        print("\nDownloading Romanian stories from HuggingFace...")
+        print("Dataset: readerbench/ro-stories")
+        print("Note: Dataset contains story paragraphs from Romanian authors")
         
-        cc_titles = [
-            "Ghid complet pentru {topic}",
-            "Tot ce trebuie să știi despre {topic}",
-            "FAQ - Întrebări frecvente privind {topic}",
-            "Tutorial: Cum să {action}",
-            "Analiza profundă a {topic}",
-            "Comparație între {topic} și {topic2}",
-            "Beneficiile {topic} - Explicație detaliată",
-            "Problemele comune cu {topic} și soluțiile lor",
-            "Ghid de cumpărare pentru {topic}",
-            "Tendințe în {topic} pentru 2025",
-        ]
-        
-        cc_content = [
-            "Acest articol oferă o privire în profunzime asupra {topic}. Vom analiza aspectele cheie și implicațiile acestuia. De-a lungul acestui ghid, vei afla totul ce trebuie să știi pentru a înțelege complet subiectul.",
-            "Pentru a înțelege pe deplin {topic}, este important să examinezi mai întâi contextul istoric. Ulterior, vei putea aprecia mai bine impactul actual. Acest ghid iterativ îți va permite să construiești o înțelegere solidă.",
-            "Specialiștii din industrie recomandă următoarele practici pentru {topic}. În primul rând, trebuie să etablești o bază solidă. După aceea, poți continua cu etapele mai avansate pentru a obține rezultate optime.",
-            "Cercetări recente arată că {topic} are implicații semnificative. Datele disponibile sugerează o schimbare pozitivă în peisajul actual. Mulți specialiști sunt optimiști cu privire la evoluția viitoare.",
-            "Dacă ești interesat de {topic}, ar trebui să iei în considerare următorii factori. Fiecare dintre aceștia joacă un rol crucial în succesul tău. Prin urmare, dedică timp pentru a studia fiecare aspect în detaliu.",
-        ]
-        
-        topics = [
-            "tehnologie", "design", "programare", "marketing digital", "vânzări online",
-            "management de proiecte", "comunicare", "leadership", "inovație",
-            "strategie de afaceri", "productivitate", "dezvoltare personală",
-            "fitness și sănătate", "nutriție", "psihologie", "viață de familie",
-            "relații profesionale", "educație online", "certificări", "freelancing"
-        ]
-        
-        actions = [
-            "începi o afacere", "înveți programare", "devii mai productiv",
-            "îți crești venitul", "construiești o echipă", "gestionezi stres",
-            "îți îmbunătățești o abilitate", "devii expert", "găsești oportunități"
-        ]
-        
-        documents = []
-        for i in tqdm(range(count), desc="Generating web docs"):
-            title = random.choice(cc_titles)
-            topic = random.choice(topics)
+        try:
+            from datasets import load_dataset
             
-            if "{topic2}" in title:
-                topic2 = random.choice([t for t in topics if t != topic])
-                title = title.format(topic=topic, topic2=topic2, action=random.choice(actions))
-            elif "{action}" in title:
-                title = title.format(topic=topic, action=random.choice(actions))
+            dataset = load_dataset("readerbench/ro-stories", split="train")
+            
+            documents = []
+            for idx, item in enumerate(tqdm(dataset, desc="Processing stories")):
+                # Available fields: author, title, paragraph, word_count
+                author = item.get("author", "Unknown")
+                title = item.get("title", f"Story {idx}")
+                paragraph = item.get("paragraph", "")  # Main content is in "paragraph" field
+                word_count = item.get("word_count", 0)
+                
+                doc = {
+                    "doc_id": self.manager.get_next_doc_id(self.category, "sto"),
+                    "title": title,
+                    "author": author,
+                    "content": paragraph,
+                    "word_count": word_count,
+                    "source": "readerbench/ro-stories",
+                    "original_id": idx
+                }
+                documents.append(doc)
+            
+            print(f"Downloaded {len(documents)} story paragraphs")
+            return documents
+            
+        except Exception as e:
+            print(f"Error downloading stories: {e}")
+            raise
+
+
+class RoTextSummarizationDownloader(BaseDatasetDownloader):
+    """Downloader for Romanian Text Summarization dataset."""
+    
+    def _get_category_name(self) -> str:
+        return "summarization"
+    
+    def download(self) -> List[Dict[str, Any]]:
+        print("\nDownloading Romanian text summarization from HuggingFace...")
+        print("Dataset: readerbench/ro-text-summarization")
+        print("Note: Dataset contains articles with summaries (~65k total)")
+        
+        try:
+            from datasets import load_dataset
+            
+            dataset = load_dataset("readerbench/ro-text-summarization", split="train")
+            
+            # Apply limit if set (default ALL documents if not specified)
+            limit = self.limit if self.limit else -1
+            if limit > 0 and limit < len(dataset):
+                print(f"Limiting to first {limit} documents (total available: {len(dataset)})")
+                dataset = dataset.select(range(min(limit, len(dataset))))
             else:
-                title = title.format(topic=topic)
+                print(f"Downloading all {len(dataset)} documents")
             
-            doc = {
-                "doc_id": f"cc_{self.doc_counter:06d}",
-                "title": title,
-                "content": random.choice(cc_content).format(topic=topic),
-                "source": "commoncrawl",
-                "original_id": i
-            }
-            documents.append(doc)
-            self.doc_counter += 1
+            documents = []
+            for idx, item in enumerate(tqdm(dataset, desc="Processing summarization")):
+                # Available fields: Category, Title, Content, Summary, href, Source
+                category = item.get("Category", "uncategorized")
+                title = item.get("Title", f"Article {idx}")
+                content = item.get("Content", "")
+                summary = item.get("Summary", "")
+                source = item.get("Source", "unknown")
+                href = item.get("href", "")
+                
+                doc = {
+                    "doc_id": self.manager.get_next_doc_id(self.category, "sum"),
+                    "title": title,
+                    "content": content,
+                    "summary": summary,
+                    "category": category,
+                    "source_url": href,
+                    "source": f"readerbench/ro-text-summarization ({source})",
+                    "original_id": idx
+                }
+                documents.append(doc)
+            
+            print(f"Downloaded {len(documents)} summarization articles")
+            return documents
+            
+        except Exception as e:
+            print(f"Error downloading summarization: {e}")
+            raise
+
+
+class HistNERODownloader(BaseDatasetDownloader):
+    """Downloader for HistNERo (Historical NER) dataset."""
+    
+    def _get_category_name(self) -> str:
+        return "ner"
+    
+    def download(self) -> List[Dict[str, Any]]:
+        print("\nDownloading HistNERo (Historical NER) from HuggingFace...")
+        print("Dataset: avramandrei/histnero")
+        print("Note: Dataset contains annotated sentences for Named Entity Recognition")
         
-        print(f"Generated {len(documents)} synthetic web documents")
+        try:
+            from datasets import load_dataset
+            
+            dataset = load_dataset("avramandrei/histnero", split="train")
+            
+            # Apply limit if set (default all for this small dataset)
+            limit = self.limit if self.limit else -1
+            if limit > 0 and limit < len(dataset):
+                print(f"Limiting to first {limit} documents (total available: {len(dataset)})")
+                dataset = dataset.select(range(min(limit, len(dataset))))
+            else:
+                print(f"Downloading all {len(dataset)} documents")
+            
+            documents = []
+            for idx, item in enumerate(tqdm(dataset, desc="Processing HistNERo")):
+                # Available fields: id, ner_tags, tokens, doc_id, region
+                item_id = item.get("id", idx)
+                tokens = item.get("tokens", [])
+                ner_tags = item.get("ner_tags", [])
+                doc_id = item.get("doc_id", "")
+                region = item.get("region", "Unknown")
+                
+                # Reconstruct text from tokens
+                text = " ".join(tokens) if tokens else ""
+                
+                doc = {
+                    "doc_id": self.manager.get_next_doc_id(self.category, "ner"),
+                    "item_id": item_id,
+                    "text": text,
+                    "tokens": tokens,
+                    "ner_tags": ner_tags,
+                    "original_doc_id": doc_id,
+                    "region": region,
+                    "source": "avramandrei/histnero",
+                    "original_id": idx
+                }
+                documents.append(doc)
+            
+            print(f"Downloaded {len(documents)} NER annotated sentences")
+            return documents
+            
+        except Exception as e:
+            print(f"Error downloading HistNERo: {e}")
+            raise
+
+
+class RomanianNewsDownloader(BaseDatasetDownloader):
+    """Downloader for Romanian News Articles from multiple outlets.
+    
+    Downloads ~150k articles from 10 Romanian news outlets:
+    - Adevărul, Digi24, Libertatea, Mediafax, ProTV, Ziarul Financiar,
+    - EVZ, Cotidianul, Aleph, Realitatea
+    
+    Each outlet is saved as a separate category with title, text, and summary.
+    """
+    
+    def _get_category_name(self) -> str:
+        return "news"
+    
+    def download(self) -> List[Dict[str, Any]]:
+        print("\nDownloading Romanian News Articles...")
+        print("Repository: mhakan20/RomanianNewsArticlesDataset")
+        print("Note: Contains articles from 10 Romanian news outlets")
+        
+        import tempfile
+        import shutil
+        import subprocess
+        
+        documents = []
+        temp_dir = None
+        
+        try:
+            # Clone repository to temp directory
+            temp_dir = tempfile.mkdtemp(prefix="ro_news_")
+            print(f"Cloning repository to {temp_dir}...")
+            
+            result = subprocess.run(
+                ["git", "clone", "--depth=1", 
+                 "https://github.com/mhakan20/RomanianNewsArticlesDataset.git",
+                 temp_dir],
+                capture_output=True,
+                timeout=120
+            )
+            
+            if result.returncode != 0:
+                raise Exception(f"Git clone failed: {result.stderr.decode()}")
+            
+            datasets_dir = os.path.join(temp_dir, "datasets")
+            
+            # Map JSON files to news outlets
+            news_sources = {
+                'adevarul': 'news_adevarul.json',
+                'digi24': 'news_digi.json',
+                'libertatea': 'news_libertatea.json',
+                'mediafax': 'news_mediafax.json',
+                'protv': 'news_protv.json',
+                'zf': 'news_zf.json',
+                'evz': 'news_evz.json',
+                'cotidianul': 'news_cotidianul.json',
+                'aleph': 'news_aleph.json',
+                'realitatea': 'news_realitatea.json',
+            }
+            
+            total_docs = 0
+            
+            # Process each news source
+            for source_key, json_file in news_sources.items():
+                json_path = os.path.join(datasets_dir, json_file)
+                
+                if not os.path.exists(json_path):
+                    print(f"⚠ Warning: {json_file} not found, skipping")
+                    continue
+                
+                print(f"\nProcessing {source_key.upper()}...")
+                
+                try:
+                    with open(json_path, 'r', encoding='utf-8') as f:
+                        articles = json.load(f)
+                    
+                    # Apply limit if set
+                    if self.limit and self.limit > 0:
+                        articles = articles[:self.limit]
+                    
+                    # Save to source-specific category
+                    source_docs = []
+                    for idx, article in enumerate(tqdm(articles, desc=f"Processing {source_key}")):
+                        doc = {
+                            "doc_id": self.manager.get_next_doc_id(source_key, source_key[:3]),
+                            "title": article.get("title", f"Article {idx}"),
+                            "text": article.get("text", ""),
+                            "summary": article.get("summary", ""),
+                            "source": source_key,
+                            "publication": source_key,
+                            "original_id": idx
+                        }
+                        source_docs.append(doc)
+                    
+                    # Save to separate category per source
+                    self.manager.save_category_documents(
+                        source_docs,
+                        source_key,
+                        filename=f"news_{source_key}.jsonl"
+                    )
+                    
+                    total_docs += len(source_docs)
+                    print(f"  → {len(source_docs)} articles from {source_key}")
+                    
+                    documents.extend(source_docs)
+                    
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing {json_file}: {e}")
+                    continue
+                except Exception as e:
+                    print(f"Error processing {source_key}: {e}")
+                    continue
+            
+            print(f"\nTotal news articles downloaded: {total_docs}")
+            return documents
+            
+        except Exception as e:
+            print(f"Error downloading news articles: {e}")
+            raise
+        finally:
+            # Cleanup temp directory
+            if temp_dir and os.path.exists(temp_dir):
+                try:
+                    shutil.rmtree(temp_dir)
+                    print(f"Cleaned up temporary directory")
+                except Exception as e:
+                    print(f"Warning: Could not cleanup temp directory: {e}")
+
+
+class DatasetDownloader:
+    """Main orchestrator for dataset downloads."""
+    
+    def __init__(self):
+        self.manager = CategoryDatasetManager()
+        self.downloaders = {
+            'recipes': RecipesDownloader(self.manager),
+            'stories': RoStoriesDownloader(self.manager),
+            'summarization': RoTextSummarizationDownloader(self.manager),
+            'ner': HistNERODownloader(self.manager),
+            'news': RomanianNewsDownloader(self.manager),
+        }
+    
+    def download_dataset(self, name: str, limit: int = None) -> Optional[List[Dict[str, Any]]]:
+        """Download a specific dataset.
+        
+        Args:
+            name: Dataset name
+            limit: Maximum number of documents to download (None = all, -1 = all, >0 = limit)
+        """
+        if name not in self.downloaders:
+            print(f"Error: Dataset '{name}' not found.")
+            print(f"Available datasets: {', '.join(self.downloaders.keys())}")
+            return None
+        
+        downloader = self.downloaders[name]
+        
+        # Set limit if provided
+        if limit is not None:
+            downloader.set_limit(limit)
+        
+        documents = downloader.download()
+        downloader.save(documents)
         return documents
     
-    def save_documents(self, documents: List[Dict[str, Any]], filename: str) -> None:
-        output_path = os.path.join(self.output_dir, filename)
-        save_jsonl(documents, output_path)
-        print(f"Saved to: {output_path}")
-    
-    def download_all(self, news_count: int = 1000, cc_count: int = 1000) -> Dict[str, List[Dict[str, Any]]]:
+    def download_all(self, limit: int = None) -> Dict[str, List[Dict[str, Any]]]:
+        """Download all available datasets."""
         all_data = {}
         
-        recipes = self.download_recipes_huggingface()
-        all_data['recipes'] = recipes
-        self.save_documents(recipes, "recipes_ro.jsonl")
-        
-        news = self.generate_synthetic_news(count=news_count)
-        all_data['news'] = news
-        self.save_documents(news, "news_ro.jsonl")
-        
-        cc = self.generate_synthetic_commoncrawl(count=cc_count)
-        all_data['commoncrawl'] = cc
-        self.save_documents(cc, "commoncrawl.jsonl")
+        for name in self.downloaders.keys():
+            try:
+                documents = self.download_dataset(name, limit=limit)
+                if documents:
+                    all_data[name] = documents
+            except Exception as e:
+                print(f"Failed to download {name}: {e}")
+                continue
         
         return all_data
     
-    def combine_all_documents(self) -> None:
-        print("\nCombining all documents...")
-        
-        try:
+    def list_available_datasets(self) -> List[str]:
+        """List available datasets."""
+        return list(self.downloaders.keys())
+    
+    def combine_category_documents(self, category: str = None) -> None:
+        """Combine all documents from a specific category."""
+        if category:
+            print(f"\nCombining documents from category: {category}")
+            category_dir = self.manager.get_category_dir(category)
+            
+            all_docs = []
+            for filename in os.listdir(category_dir):
+                if filename.endswith('.jsonl'):
+                    filepath = os.path.join(category_dir, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                if line.strip():
+                                    all_docs.append(json.loads(line))
+                    except Exception as e:
+                        print(f"Error reading {filepath}: {e}")
+            
+            if all_docs:
+                combined_path = os.path.join(category_dir, f"{category}_combined.jsonl")
+                save_jsonl(all_docs, combined_path)
+                print(f"Combined {len(all_docs)} documents to: {combined_path}")
+        else:
+            print("\nCombining all documents from all categories...")
             all_docs = []
             
-            for filename in ["recipes_ro.jsonl", "news_ro.jsonl", "commoncrawl.jsonl"]:
-                filepath = os.path.join(self.output_dir, filename)
-                if os.path.exists(filepath):
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        for line in f:
-                            if line.strip():
-                                all_docs.append(json.loads(line))
+            for category_name in os.listdir(self.manager.categories_dir):
+                category_path = os.path.join(self.manager.categories_dir, category_name)
+                if os.path.isdir(category_path):
+                    for filename in os.listdir(category_path):
+                        if filename.endswith('.jsonl') and not filename.endswith('_combined.jsonl'):
+                            filepath = os.path.join(category_path, filename)
+                            try:
+                                with open(filepath, 'r', encoding='utf-8') as f:
+                                    for line in f:
+                                        if line.strip():
+                                            all_docs.append(json.loads(line))
+                            except Exception as e:
+                                print(f"Error reading {filepath}: {e}")
             
-            print(f"Total documents: {len(all_docs)}")
-            
-            combined_path = os.path.join(self.output_dir, "all_documents_combined.jsonl")
-            save_jsonl(all_docs, combined_path)
-            
-            print("\nSummary:")
-            print(f"Recipes: {len([d for d in all_docs if d['source'] == 'recipes-ro'])}")
-            print(f"News: {len([d for d in all_docs if d['source'] == 'news_ro'])}")
-            print(f"Common Crawl: {len([d for d in all_docs if d['source'] == 'commoncrawl'])}")
-            print(f"TOTAL: {len(all_docs)}")
-            
-        except Exception as e:
-            print(f"Error combining documents: {e}")
+            if all_docs:
+                combined_path = os.path.join(self.manager.categories_dir, "all_documents.jsonl")
+                save_jsonl(all_docs, combined_path)
+                print(f"\nSummary:")
+                sources = {}
+                for doc in all_docs:
+                    source = doc.get('source', 'unknown')
+                    sources[source] = sources.get(source, 0) + 1
+                
+                for source, count in sorted(sources.items()):
+                    print(f"  {source}: {count} documents")
+                print(f"  TOTAL: {len(all_docs)} documents")
+
 
 def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Download and process datasets")
-    parser.add_argument('--output', type=str, default='data/corpus', help='Output directory')
-    parser.add_argument('--combine', action='store_true', help='Combine all documents into single file')
-    parser.add_argument('--news-count', type=int, default=1000, help='Number of synthetic news articles')
-    parser.add_argument('--cc-count', type=int, default=1000, help='Number of synthetic commoncrawl documents')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed for reproducibility')
+    parser.add_argument(
+        '--dataset',
+        type=str,
+        help='Specific dataset to download (e.g., recipes, stories, summarization)'
+    )
+    parser.add_argument(
+        '--limit',
+        type=int,
+        default=None,
+        help='Maximum documents to download (-1 for all, default varies by dataset)'
+    )
+    parser.add_argument(
+        '--list',
+        action='store_true',
+        help='List available datasets'
+    )
+    parser.add_argument(
+        '--combine',
+        type=str,
+        nargs='?',
+        const='all',
+        help='Combine documents from category or all categories'
+    )
     
     args = parser.parse_args()
     
-    random.seed(args.seed)
-    
     print("\n" + "="*60)
-    print("Dataset Downloader")
+    print("Dataset Downloader - Dynamic Categories")
     print("="*60)
     
-    downloader = DatasetDownloader(output_dir=args.output)
-    all_data = downloader.download_all(news_count=args.news_count, cc_count=args.cc_count)
+    downloader = DatasetDownloader()
     
-    if args.combine:
-        downloader.combine_all_documents()
-    
-    print("\n" + "="*60)
-    print("Download complete!")
-    print("="*60)
-    print(f"\nFiles saved to: {args.output}/")
-    print(f"- recipes_ro.jsonl ({len(all_data['recipes'])} docs)")
-    print(f"- news_ro.jsonl ({len(all_data['news'])} docs)")
-    print(f"- commoncrawl.jsonl ({len(all_data['commoncrawl'])} docs)")
-    if args.combine:
-        print(f"- all_documents_combined.jsonl")
-    print()
+    if args.list:
+        print("\nAvailable datasets:")
+        for ds in downloader.list_available_datasets():
+            print(f"  - {ds}")
+    elif args.dataset:
+        try:
+            downloader.download_dataset(args.dataset, limit=args.limit)
+        except Exception as e:
+            print(f"Error: {e}")
+    elif args.combine:
+        category = None if args.combine == 'all' else args.combine
+        downloader.combine_category_documents(category)
+    else:
+        # Default: download all datasets
+        all_data = downloader.download_all(limit=args.limit)
+        print("\n" + "="*60)
+        print("Download complete!")
+        print("="*60)
+        for name, docs in all_data.items():
+            print(f"{name}: {len(docs)} documents")
 
 
 if __name__ == '__main__':
     main()
+
