@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 """
 TASK 2: Create Triplets (query, positive_doc, negative_docs)
 

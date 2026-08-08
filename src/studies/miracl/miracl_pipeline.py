@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from utils import ensure_dir, save_json
 
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent))
 except ImportError as e:
     print(f"Warning: Could not import task modules: {e}")
 
