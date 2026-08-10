@@ -1,9 +1,0 @@
-{
-  "total": 3000,
-  "train": 2100,
-  "val": 450,
-  "test": 450,
-  "train_ratio": 0.7,
-  "val_ratio": 0.15,
-  "test_ratio": 0.15
-}
