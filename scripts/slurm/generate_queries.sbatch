@@ -61,7 +61,9 @@ mkdir -p logs "$(dirname "$QGEN_OUTPUT")" "$HF_HOME"
 
 # Pass variables through to the container.
 export APPTAINERENV_HF_HOME="$HF_HOME"
-export APPTAINERENV_HF_TOKEN="${HF_TOKEN:-}"
+# Only forward a token that actually exists: an empty HF_TOKEN inside the
+# container would shadow the one stored by `huggingface-cli login`.
+[[ -n "${HF_TOKEN:-}" ]] && export APPTAINERENV_HF_TOKEN="$HF_TOKEN"
 export APPTAINERENV_QGEN_TIME_BUDGET_MIN="$QGEN_TIME_BUDGET_MIN"
 export APPTAINERENV_OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 
