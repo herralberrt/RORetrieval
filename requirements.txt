@@ -3,10 +3,20 @@ python-dotenv==1.0.0
 pyyaml==6.0.1
 
 # NLP & Embeddings
-transformers==4.40.0
-sentence-transformers==3.0.0
-datasets==2.18.0
-tokenizers==0.15.0
+# transformers >= 4.50 is required for Gemma 3 (query generation).
+transformers>=4.51.0
+sentence-transformers>=3.0.0
+datasets>=2.18.0
+tokenizers>=0.21.0
+
+# Query generation with Gemma 3 runs inside the Apptainer image
+# (see containers/README.md), which installs torch + vLLM at pinned versions.
+# For a bare venv on a GPU machine, add:
+#   torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+#   vllm==0.8.5.post1
+accelerate>=1.0.0
+sentencepiece>=0.2.0
+huggingface-hub>=0.30.0
 
 # Ranking & Similarity
 rank-bm25==0.2.2

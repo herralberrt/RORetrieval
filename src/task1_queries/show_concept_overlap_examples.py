@@ -27,6 +27,9 @@ class ConceptExtractor:
         return [word for word, _ in freq.most_common(max_concepts)]
 
 
+QUERIES_PATH = "data/queries/queries_gemma3.jsonl"
+
+
 def analyze_concept_overlap():
     """Show concept overlap for related documents."""
     
@@ -38,7 +41,7 @@ def analyze_concept_overlap():
     
     # Load some query records
     records_by_type = {}
-    with open("data/queries/queries_with_metrics.jsonl", 'r') as f:
+    with open(QUERIES_PATH, 'r', encoding='utf-8') as f:
         for line in f:
             try:
                 record = json.loads(line)

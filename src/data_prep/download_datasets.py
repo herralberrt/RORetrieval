@@ -212,63 +212,6 @@ class RoTextSummarizationDownloader(BaseDatasetDownloader):
             raise
 
 
-class HistNERODownloader(BaseDatasetDownloader):
-    """Downloader for HistNERo (Historical NER) dataset."""
-    
-    def _get_category_name(self) -> str:
-        return "ner"
-    
-    def download(self) -> List[Dict[str, Any]]:
-        print("\nDownloading HistNERo (Historical NER) from HuggingFace...")
-        print("Dataset: avramandrei/histnero")
-        print("Note: Dataset contains annotated sentences for Named Entity Recognition")
-        
-        try:
-            from datasets import load_dataset
-            
-            dataset = load_dataset("avramandrei/histnero", split="train")
-            
-            # Apply limit if set (default all for this small dataset)
-            limit = self.limit if self.limit else -1
-            if limit > 0 and limit < len(dataset):
-                print(f"Limiting to first {limit} documents (total available: {len(dataset)})")
-                dataset = dataset.select(range(min(limit, len(dataset))))
-            else:
-                print(f"Downloading all {len(dataset)} documents")
-            
-            documents = []
-            for idx, item in enumerate(tqdm(dataset, desc="Processing HistNERo")):
-                # Available fields: id, ner_tags, tokens, doc_id, region
-                item_id = item.get("id", idx)
-                tokens = item.get("tokens", [])
-                ner_tags = item.get("ner_tags", [])
-                doc_id = item.get("doc_id", "")
-                region = item.get("region", "Unknown")
-                
-                # Reconstruct text from tokens
-                text = " ".join(tokens) if tokens else ""
-                
-                doc = {
-                    "doc_id": self.manager.get_next_doc_id(self.category, "ner"),
-                    "item_id": item_id,
-                    "text": text,
-                    "tokens": tokens,
-                    "ner_tags": ner_tags,
-                    "original_doc_id": doc_id,
-                    "region": region,
-                    "source": "avramandrei/histnero",
-                    "original_id": idx
-                }
-                documents.append(doc)
-            
-            print(f"Downloaded {len(documents)} NER annotated sentences")
-            return documents
-            
-        except Exception as e:
-            print(f"Error downloading HistNERo: {e}")
-            raise
-
-
 class RomanianNewsDownloader(BaseDatasetDownloader):
     """Downloader for Romanian News Articles from multiple outlets.
     
@@ -404,7 +347,6 @@ class DatasetDownloader:
             'recipes': RecipesDownloader(self.manager),
             'stories': RoStoriesDownloader(self.manager),
             'summarization': RoTextSummarizationDownloader(self.manager),
-            'ner': HistNERODownloader(self.manager),
             'news': RomanianNewsDownloader(self.manager),
         }
     

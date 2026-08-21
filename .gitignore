@@ -4,6 +4,11 @@
 venv/
 .venv/
 env/
+containers/env.sh
+
+# Containers (built images are large binaries)
+*.sif
+*.simg
 
 # Python
 *.pyc

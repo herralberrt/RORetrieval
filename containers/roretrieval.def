@@ -1,0 +1,136 @@
+Bootstrap: docker
+From: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+
+# ---------------------------------------------------------------------------
+# RORetrieval - Apptainer image for Gemma 3 query generation on a GPU cluster.
+#
+# Build (on a machine where you have fakeroot or root):
+#     bash containers/build.sh
+#     # or: apptainer build --fakeroot containers/roretrieval.sif containers/roretrieval.def
+#
+# Run:
+#     apptainer exec --nv containers/roretrieval.sif \
+#         python3 -m src.task1_queries.gemma_query_generation --max-docs 20000
+#
+# All pinned versions live in the first block of %post so they are easy to
+# adjust if the cluster driver is older than CUDA 12.4.
+# ---------------------------------------------------------------------------
+
+%labels
+    Author       RORetrieval
+    Description  Gemma 3 query generation + retrieval training stack
+    CUDA         12.4.1
+    Torch        2.6.0
+    vLLM         0.8.5.post1
+    Transformers 4.51.3
+
+%post
+    set -eux
+
+    # ---- pinned versions ---------------------------------------------------
+    TORCH_VERSION=2.6.0
+    TORCHVISION_VERSION=0.21.0
+    TORCH_INDEX=https://download.pytorch.org/whl/cu124
+    VLLM_VERSION=0.8.5.post1
+    # Gemma 3 needs transformers >= 4.50; vLLM 0.8.5 requires >= 4.51.1
+    TRANSFORMERS_VERSION=4.51.3
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        python3.10 python3.10-dev python3-pip python3-venv \
+        build-essential git git-lfs curl ca-certificates locales
+    rm -rf /var/lib/apt/lists/*
+
+    # UTF-8 everywhere: the corpus is Romanian, with diacritics.
+    locale-gen en_US.UTF-8
+
+    ln -sf /usr/bin/python3.10 /usr/local/bin/python3
+    ln -sf /usr/bin/python3.10 /usr/local/bin/python
+    python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+    # ---- inference stack ---------------------------------------------------
+    python3 -m pip install --no-cache-dir --index-url ${TORCH_INDEX} \
+        torch==${TORCH_VERSION} torchvision==${TORCHVISION_VERSION}
+
+    python3 -m pip install --no-cache-dir vllm==${VLLM_VERSION}
+    python3 -m pip install --no-cache-dir \
+        transformers==${TRANSFORMERS_VERSION} \
+        accelerate \
+        sentencepiece \
+        protobuf \
+        "huggingface_hub[cli]" \
+        hf_transfer
+
+    # ---- project stack -----------------------------------------------------
+    # Installed explicitly rather than from requirements.txt: the repo pins
+    # transformers==4.40 (too old for Gemma 3) and numpy==1.24 (too old for vLLM).
+    python3 -m pip install --no-cache-dir \
+        sentence-transformers \
+        datasets \
+        faiss-cpu \
+        rank-bm25 \
+        scikit-learn \
+        scipy \
+        pandas \
+        jsonlines \
+        tqdm \
+        nltk \
+        rouge-score \
+        python-dotenv \
+        pyyaml \
+        requests \
+        matplotlib \
+        seaborn \
+        beautifulsoup4 \
+        feedparser
+
+    python3 -m pip cache purge || true
+
+%environment
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    export PYTHONUNBUFFERED=1
+    # Never let ~/.local/lib packages shadow the container's stack (common on clusters).
+    export PYTHONNOUSERSITE=1
+
+    # HuggingFace caches: keep them in $HOME (or override with APPTAINERENV_HF_HOME)
+    # so the ~8GB of Gemma weights survive between jobs.
+    export HF_HOME="${HF_HOME:-$HOME/.cache/huggingface}"
+    export HF_HUB_ENABLE_HF_TRANSFER=1
+    export TOKENIZERS_PARALLELISM=false
+
+    # Writable compile caches - a read-only default would abort vLLM startup.
+    export TRITON_CACHE_DIR="${TRITON_CACHE_DIR:-$HOME/.cache/triton}"
+    export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+    export OUTLINES_CACHE_DIR="${OUTLINES_CACHE_DIR:-$HOME/.cache/outlines}"
+
+    export VLLM_WORKER_MULTIPROC_METHOD=spawn
+    export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
+
+%runscript
+    # `apptainer run image.sif <args>` -> runs the query generator.
+    # Use `apptainer exec image.sif python3 ...` for anything else.
+    exec python3 -m src.task1_queries.gemma_query_generation "$@"
+
+%test
+    set -e
+    python3 -c "import torch; print('torch', torch.__version__)"
+    python3 -c "import transformers; print('transformers', transformers.__version__)"
+    python3 -c "import vllm; print('vllm', vllm.__version__)"
+    python3 -c "import sentence_transformers, faiss, sklearn; print('project stack ok')"
+
+%help
+    RORetrieval - Gemma 3 query generation.
+
+    Requires a GPU: run with `--nv`.
+    Gemma 3 is a gated model: accept the license on HuggingFace and export
+    HF_TOKEN (see containers/env.example) before the first run.
+
+    Examples:
+      apptainer exec --nv roretrieval.sif \
+          python3 -m src.task1_queries.gemma_query_generation --dry-run
+      apptainer exec --nv roretrieval.sif \
+          python3 -m src.task1_queries.gemma_query_generation \
+              --max-docs 20000 --time-budget-min 110 --resume

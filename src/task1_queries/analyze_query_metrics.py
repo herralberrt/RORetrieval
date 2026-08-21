@@ -10,7 +10,10 @@ from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
 
-def analyze_metrics(input_path: str = "data/queries/queries_with_metrics.jsonl"):
+DEFAULT_INPUT = "data/queries/queries_gemma3.jsonl"
+
+
+def analyze_metrics(input_path: str = DEFAULT_INPUT):
     """Analyze quality metrics distribution."""
     
     metrics_by_type = defaultdict(lambda: {
@@ -171,4 +174,8 @@ def analyze_metrics(input_path: str = "data/queries/queries_with_metrics.jsonl")
 
 
 if __name__ == "__main__":
-    analyze_metrics()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Analyze generated query metrics")
+    parser.add_argument("--input", default=DEFAULT_INPUT, help="query JSONL to analyze")
+    analyze_metrics(parser.parse_args().input)
