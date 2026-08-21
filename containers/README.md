@@ -8,12 +8,18 @@ rest of the project stack (sentence-transformers, faiss, datasets).
 | CUDA | 12.4.1 (cudnn runtime) | broad driver compatibility (needs driver ≥ 550) |
 | PyTorch | 2.6.0 (cu124) | required by vLLM 0.8.5 |
 | vLLM | 0.8.5.post1 | continuous batching; first release line with Gemma 3 support |
-| transformers | 4.51.3 | Gemma 3 needs ≥ 4.50 |
+| transformers | 4.51.3 | Gemma 3 needs ≥ 4.50; vLLM 0.8.5 needs the 4.x line |
+| sentence-transformers | 4.1.0 (`<5`) | 5.x requires transformers ≥ 5, which breaks vLLM |
 
 All versions sit in the first block of `%post` in
 [roretrieval.def](roretrieval.def) — edit there if your cluster driver is older
 (for CUDA 12.1 drivers switch `TORCH_INDEX` to `.../whl/cu121` and use the
 matching base image).
+
+The whole stack is installed in a **single pip call** on purpose: split across
+several calls, a later package silently upgrades an earlier pin. A build-time
+guard asserts `transformers` stayed on 4.x, so this fails during the build
+rather than on a GPU node after queueing.
 
 ## 1. Build
 

@@ -50,24 +50,27 @@ From: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
     ln -sf /usr/bin/python3.10 /usr/local/bin/python
     python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
-    # ---- inference stack ---------------------------------------------------
     python3 -m pip install --no-cache-dir --index-url ${TORCH_INDEX} \
         torch==${TORCH_VERSION} torchvision==${TORCHVISION_VERSION}
 
-    python3 -m pip install --no-cache-dir vllm==${VLLM_VERSION}
+    # Everything else goes in ONE pip call so the resolver sees all constraints
+    # at once. Split across several calls, a later package silently upgrades an
+    # earlier pin: `sentence-transformers` (latest) requires transformers>=5,
+    # which replaces the pinned 4.51.3 and breaks vLLM 0.8.5 at model load.
+    # pip settles on sentence-transformers 4.1.0, which caps transformers<5.
+    #
+    # Listed explicitly rather than installed from requirements.txt: the repo
+    # pins transformers==4.40 (too old for Gemma 3) and numpy==1.24 (too old
+    # for vLLM).
     python3 -m pip install --no-cache-dir \
+        vllm==${VLLM_VERSION} \
         transformers==${TRANSFORMERS_VERSION} \
+        "sentence-transformers<5" \
         accelerate \
         sentencepiece \
         protobuf \
         "huggingface_hub[cli]" \
-        hf_transfer
-
-    # ---- project stack -----------------------------------------------------
-    # Installed explicitly rather than from requirements.txt: the repo pins
-    # transformers==4.40 (too old for Gemma 3) and numpy==1.24 (too old for vLLM).
-    python3 -m pip install --no-cache-dir \
-        sentence-transformers \
+        hf_transfer \
         datasets \
         faiss-cpu \
         rank-bm25 \
@@ -86,6 +89,19 @@ From: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
         beautifulsoup4 \
         feedparser
 
+    # Fail the build - loudly, here - rather than at model load on a GPU node.
+    python3 - <<'PYCHECK'
+import transformers, vllm, torch
+major = int(transformers.__version__.split(".")[0])
+assert major == 4, (
+    f"transformers {transformers.__version__} was pulled in over the pin; "
+    f"vLLM {vllm.__version__} needs the 4.x line"
+)
+print(f"version guard ok: torch {torch.__version__}, "
+      f"transformers {transformers.__version__}, vllm {vllm.__version__}")
+PYCHECK
+
+    python3 -m pip check
     python3 -m pip cache purge || true
 
 %environment
@@ -120,6 +136,11 @@ From: nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
     python3 -c "import transformers; print('transformers', transformers.__version__)"
     python3 -c "import vllm; print('vllm', vllm.__version__)"
     python3 -c "import sentence_transformers, faiss, sklearn; print('project stack ok')"
+    python3 -c "
+import transformers, sentence_transformers
+assert transformers.__version__.startswith('4.'), transformers.__version__
+print('version guard ok: sentence-transformers', sentence_transformers.__version__)
+"
 
 %help
     RORetrieval - Gemma 3 query generation.

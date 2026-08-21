@@ -3,9 +3,10 @@ python-dotenv==1.0.0
 pyyaml==6.0.1
 
 # NLP & Embeddings
-# transformers >= 4.50 is required for Gemma 3 (query generation).
-transformers>=4.51.0
-sentence-transformers>=3.0.0
+# transformers >= 4.50 is required for Gemma 3 (query generation); vLLM 0.8.5
+# needs the 4.x line, and sentence-transformers 5.x would pull transformers 5.
+transformers>=4.51.0,<5
+sentence-transformers>=3.0.0,<5
 datasets>=2.18.0
 tokenizers>=0.21.0
 
