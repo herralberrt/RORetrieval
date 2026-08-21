@@ -66,6 +66,12 @@ NEWS_CATEGORIES = {
     "mediafax", "news", "protv", "realitatea", "zf",
 }
 
+# `news/news.jsonl` is the concatenation of the ten outlet directories, same
+# doc_ids and all. Processing both would generate every news query twice and
+# scatter copies of one document across the train/test split, so the aggregate
+# is skipped unless it is asked for by name or with --include-aggregates.
+AGGREGATE_CATEGORIES = {"news"}
+
 
 # --------------------------------------------------------------------------- #
 # Document handling
@@ -122,29 +128,56 @@ def _is_lfs_pointer(filepath: str) -> bool:
         return False
 
 
+def usable_categories(
+    categories_dir: str,
+    categories: Optional[List[str]] = None,
+    include_aggregates: bool = False,
+    verbose: bool = True,
+) -> List[str]:
+    """Category directories to read, in a stable order.
+
+    An explicit --categories selection always wins, so `--categories news`
+    still works when the aggregate is what you actually want.
+    """
+    if not os.path.isdir(categories_dir):
+        raise FileNotFoundError(f"Categories directory not found: {categories_dir}")
+
+    wanted = {c.lower() for c in categories} if categories else None
+    selected = []
+
+    for category in sorted(os.listdir(categories_dir)):
+        if not os.path.isdir(os.path.join(categories_dir, category)):
+            continue
+        if category_to_type(category) == "unknown":
+            if verbose:
+                print(f"  ⚠ Skipping unknown category: {category}")
+            continue
+        if wanted is not None:
+            if category.lower() in wanted:
+                selected.append(category)
+            continue
+        if category.lower() in AGGREGATE_CATEGORIES and not include_aggregates:
+            if verbose:
+                print(f"  ▸ Skipping aggregate category '{category}' "
+                      f"(duplicates the per-outlet directories; "
+                      f"--include-aggregates to keep it)")
+            continue
+        selected.append(category)
+
+    return selected
+
+
 def iter_documents(
     categories_dir: str,
     categories: Optional[List[str]] = None,
     per_category: Optional[int] = None,
     stride: int = 1,
+    include_aggregates: bool = False,
 ) -> Iterator[Tuple[Dict[str, Any], str]]:
     """Stream (document, doc_type) pairs from the category JSONL files."""
-    if not os.path.isdir(categories_dir):
-        raise FileNotFoundError(f"Categories directory not found: {categories_dir}")
-
-    wanted = {c.lower() for c in categories} if categories else None
-
-    for category in sorted(os.listdir(categories_dir)):
+    for category in usable_categories(categories_dir, categories, include_aggregates):
         category_path = os.path.join(categories_dir, category)
-        if not os.path.isdir(category_path):
-            continue
-        if wanted and category.lower() not in wanted:
-            continue
-
         doc_type = category_to_type(category)
-        if doc_type == "unknown":
-            print(f"  ⚠ Skipping unknown category: {category}")
-            continue
 
         emitted = 0
         for filename in sorted(os.listdir(category_path)):
@@ -175,17 +208,14 @@ def iter_documents(
                 break
 
 
-def count_categories(categories_dir: str, categories: Optional[List[str]]) -> int:
-    """Number of usable category directories (for balanced sampling)."""
-    if not os.path.isdir(categories_dir):
-        return 0
-    wanted = {c.lower() for c in categories} if categories else None
-    return sum(
-        1 for c in os.listdir(categories_dir)
-        if os.path.isdir(os.path.join(categories_dir, c))
-        and category_to_type(c) != "unknown"
-        and (wanted is None or c.lower() in wanted)
-    )
+def count_categories(
+    categories_dir: str,
+    categories: Optional[List[str]],
+    include_aggregates: bool = False,
+) -> int:
+    """Number of category directories that will be read (for balanced sampling)."""
+    return len(usable_categories(categories_dir, categories, include_aggregates,
+                                verbose=False))
 
 
 # --------------------------------------------------------------------------- #
@@ -543,7 +573,8 @@ def run(args) -> None:
 
     per_category = args.per_category
     if per_category is None and args.max_docs:
-        n_cats = count_categories(args.categories_dir, args.categories)
+        n_cats = count_categories(args.categories_dir, args.categories,
+                                  args.include_aggregates)
         if n_cats:
             per_category = -(-args.max_docs // n_cats)  # ceil, balanced sampling
             print(f"▸ Balanced sampling: {per_category} documents from each of {n_cats} categories.")
@@ -565,6 +596,7 @@ def run(args) -> None:
         categories=args.categories,
         per_category=per_category,
         stride=args.stride,
+        include_aggregates=args.include_aggregates,
     )
 
     batch_docs: List[Tuple[Dict[str, Any], str]] = []
@@ -744,6 +776,9 @@ def parse_args(argv=None):
                             help="per-category cap (default: max-docs split evenly)")
     data_group.add_argument("--stride", type=int, default=1,
                             help="take every Nth document for a spread-out sample")
+    data_group.add_argument("--include-aggregates", action="store_true",
+                            help="also read data/categories/news/, which duplicates "
+                                 "the ten per-outlet directories")
     data_group.add_argument("--max-doc-chars", type=int, default=2000)
 
     run_group = parser.add_argument_group("run")

@@ -6,7 +6,14 @@ from tqdm import tqdm
 import sys
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent))
+# Modules are imported flat (`from utils import ...`), but they live in sibling
+# packages: utils.py in src/utils/, FaissIndexer in src/indexing/, and so on.
+# Put every src/ subdirectory on the path so the imports below resolve.
+_SRC_DIR = Path(__file__).resolve().parent.parent
+sys.path[:0] = [
+    str(p) for p in _SRC_DIR.iterdir()
+    if p.is_dir() and not p.name.startswith((".", "_"))
+]
 from utils import load_jsonl, save_jsonl, ensure_dir
 
 

@@ -6,7 +6,14 @@ from tqdm import tqdm
 import sys
 from abc import ABC, abstractmethod
 
-sys.path.insert(0, str(Path(__file__).parent))
+# Modules are imported flat (`from utils import ...`), but they live in sibling
+# packages: utils.py in src/utils/, FaissIndexer in src/indexing/, and so on.
+# Put every src/ subdirectory on the path so the imports below resolve.
+_SRC_DIR = Path(__file__).resolve().parent.parent
+sys.path[:0] = [
+    str(p) for p in _SRC_DIR.iterdir()
+    if p.is_dir() and not p.name.startswith((".", "_"))
+]
 from utils import save_jsonl, ensure_dir
 
 
@@ -247,7 +254,9 @@ class RomanianNewsDownloader(BaseDatasetDownloader):
                  "https://github.com/mhakan20/RomanianNewsArticlesDataset.git",
                  temp_dir],
                 capture_output=True,
-                timeout=120
+                # The repo carries ~350MB of JSON; 2 minutes is not enough on a
+                # shared cluster link.
+                timeout=int(os.environ.get("NEWS_CLONE_TIMEOUT", 900))
             )
             
             if result.returncode != 0:

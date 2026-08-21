@@ -101,6 +101,10 @@ Key flags: `--model` (default `google/gemma-3-4b-it`), `--backend`
 (continue a previous run). See [containers/README.md](containers/README.md)
 for the GPU setup.
 
+`data/categories/news/` is the concatenation of the ten per-outlet directories
+(identical `doc_id`s), so it is skipped by default to avoid generating every
+news query twice; pass `--include-aggregates` or `--categories news` to read it.
+
 **Output Metrics** (unchanged schema, per document record):
 - Quality scores (0-1): avg_quality by document type
 - Diversity (0-1): query variation within document set

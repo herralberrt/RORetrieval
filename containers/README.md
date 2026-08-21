@@ -56,6 +56,18 @@ git lfs pull
 The generator prints a warning and skips any category file that is still an
 unfetched pointer, so an empty run usually means this step was missed.
 
+Alternatively, skip git-lfs entirely and fetch the corpus from the original
+sources — compute nodes here have outbound internet:
+
+```bash
+mkdir -p logs
+sbatch --partition=haswell scripts/slurm/download_data.sbatch
+```
+
+Run this as a batch job, not on the login node: Apptainer tears down the
+squashfuse mount of the `.sif` when the session that started it ends, which
+kills anything long-running detached with `nohup`.
+
 ## 3. Gemma access (one-time)
 
 Gemma 3 is gated:
