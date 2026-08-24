@@ -157,20 +157,34 @@ Throughput with vLLM, 4 queries per document:
 
 | GPU | 4B: ~docs / 2h | 27B: ~docs / 2h |
 |---|---|---|
-| A100 80GB | 150k+ | 15k+ (see below) |
+| A100 80GB | 150k+ | ~25k (measured) |
 | A100 40GB / L40S | ~100k | needs TP=2 |
 | V100 32GB (`DTYPE=float16`) | ~30k | does not fit |
 | RTX 2080Ti / T4 (`DTYPE=float16`, `MAX_MODEL_LEN=1536`) | ~10-15k | does not fit |
 
-The 27B figure is a **floor**, not a measurement of steady state: a 24-document
-smoke run on an A100 80GB reported 7.6k docs/h, but 24 documents never fill a
-batch of 256, so most of that window was ramp-up. Startup itself is fixed
-overhead worth planning around — ~2.5 min to download, ~1 min to load, and
-~2 min of `torch.compile` and CUDA graph capture before the first token.
+The 27B number is measured: 17,453 documents at 4 queries each in 1:24:37 of
+generation on one A100-SXM4-80GB — **12,374 docs/h**, 3.44 docs/s. Add ~5 min of
+fixed startup (~2.5 min download into node-local scratch, ~1 min load, ~1.5 min
+`torch.compile` plus CUDA graph capture, or ~15 s once `~/.cache/vllm` is warm).
 
-`MAX_DOCS` defaults to 20000, split evenly across categories — a safe first run.
-Raise it once you have measured the real rate (the job prints `docs/h` at the
-end and writes it to `<output>.stats.json`).
+vLLM reports `Maximum concurrency: 9.76x` for 2048-token requests, which looks
+alarming next to `--batch-size 256`. It is not the binding constraint: these
+prompts run ~600-700 tokens in and ~150 out, so far more than ten fit in the
+KV cache at once. Lowering `MAX_MODEL_LEN` to buy concurrency is not worth the
+restart.
+
+`MAX_DOCS` defaults to 20000, split evenly across categories: each category is
+capped at `ceil(MAX_DOCS / categories)` documents so one large outlet cannot
+dominate the set. Categories smaller than that cap contribute everything they
+have, so the run can finish **below** `MAX_DOCS` without hitting the time
+budget — a 20000-document run yielded 17,453, because `aleph` (761), `recipes`
+(818), `evz` (905), `realitatea` (1170) and `cotidianul` (1487) are all smaller
+than the 1539 cap. Check `budget_reached` in `<output>.stats.json` to tell the
+two cases apart: `false` means the corpus ran out, not the clock.
+
+To go deeper into the large categories (`summarization` has 65k documents,
+`adevarul` 10.6k, `stories` 12.5k), raise `MAX_DOCS` or set `--per-category`
+directly.
 
 ## 6. Environment variables
 
