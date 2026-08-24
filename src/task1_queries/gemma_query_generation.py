@@ -236,8 +236,9 @@ TYPE_HINTS = {
         "personaje, locuri și teme, folosind numele proprii care apar în text."
     ),
     "recipes": (
-        "Documentul este o rețetă culinară. Formulează întrebări despre preparat, "
-        "ingrediente, cantități, mod de preparare și variante."
+        "Documentul este o rețetă culinară. FIECARE întrebare trebuie să conțină "
+        "explicit numele preparatului/rețetei exact sau într-o formă naturală derivată din titlu. "
+        "Formulează întrebări despre ingrediente, cantități, mod de preparare și variante."
     ),
 }
 
@@ -260,6 +261,37 @@ Răspunde DOAR cu un array JSON de {n} șiruri de caractere, fără text suplime
 
 DOCUMENT:
 {document}
+
+JSON:"""
+
+
+PROMPT_V2_MULTI_DOC = """Ești expert în regăsirea informației (information retrieval) pentru limba română.
+
+Primești titlul și articolul original + 1-2 articole similare. Generează 2-3 întrebări suficient de generale
+încât să fie relevante pentru toate articolele, nu doar pentru articolul original.
+
+{type_hint}
+
+Reguli obligatorii:
+1. Scrie în limba română corectă, cu diacritice.
+2. Fiecare întrebare trebuie să aibă răspuns în TOATE articolele (originalul + similare).
+3. Întrebările trebuie să fie autonome: NU folosi „acest articol", „textul de mai sus", „documentul", „autorul". Cineva care nu a văzut documentele trebuie să înțeleagă întrebarea.
+4. Folosește termeni concreți (nume, locuri, instituții, cifre, produse) din articolul original, dar formuleaza generalizat să acopere și articolele similare.
+5. Variază tipul întrebărilor: factuală, cauzală („de ce"), procedurală („cum"), context sau consecințe.
+6. Fiecare întrebare are între 5 și 25 de cuvinte și se termină cu semnul întrebării.
+7. NU genera întrebări redundante sau de tip \"text-based retrieval\".
+8. Dacă nu poți genera 2-3 diverse și relevante pentru toate articolele, generează doar 1 bună.
+
+Răspunde DOAR cu un array JSON de șiruri de caractere (2-3 întrebări), fără text suplimentar și fără explicații.
+
+TITLU ARTICOL ORIGINAL:
+{title}
+
+ARTICOL ORIGINAL:
+{content}
+
+ARTICOLE SIMILARE (context suplimentar):
+{similar_articles}
 
 JSON:"""
 

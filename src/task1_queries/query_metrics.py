@@ -53,12 +53,24 @@ class ConceptExtractor:
         return [word for word, _ in freq.most_common(max_concepts)]
 
     def concepts_overlap(self, query_concepts: set, doc_concepts: set) -> float:
-        """Calculate overlap ratio between query and document concepts."""
-        if not query_concepts or not doc_concepts:
+        """
+        Calculate overlap ratio: common concepts / query concepts (recall-like).
+        Measures how well the document covers the query's key concepts.
+        """
+        if not query_concepts:
+            return 0.0
+        if not doc_concepts:
             return 0.0
         overlap = len(query_concepts & doc_concepts)
-        total = len(query_concepts | doc_concepts)
-        return overlap / total if total > 0 else 0.0
+        return overlap / len(query_concepts)  # Recall: how many query concepts appear in doc
+
+    def jaccard_similarity(self, q1_concepts: set, q2_concepts: set) -> float:
+        """Calculate Jaccard similarity (symmetric) for diversity measurement."""
+        if not q1_concepts and not q2_concepts:
+            return 1.0
+        intersection = len(q1_concepts & q2_concepts)
+        union = len(q1_concepts | q2_concepts)
+        return intersection / union if union > 0 else 0.0
 
 
 class FastQueryMetrics:
@@ -70,26 +82,33 @@ class FastQueryMetrics:
     def quality_score(self, query: str, doc: Dict[str, Any]) -> float:
         """
         Fast quality score (0-1) based on:
-        - Query length (5-20 words ideal)
-        - Concept relevance (overlap with document)
-        - Non-triviality (penalize "ce este X?")
+        - Query length (5-20 words ideal, gradual penalty after 20)
+        - Concept relevance (recall: how many query concepts appear in document)
+        - Non-triviality (penalize "ce este X?" especially if short)
         """
-        # Factor 1: Length appropriateness
+        # Factor 1: Length appropriateness (gradual penalty after 20 words)
         words = query.split()
         query_len = len(words)
-        length_score = 1.0 if 5 <= query_len <= 20 else max(0, 1 - abs(query_len - 12) / 20)
+        if 5 <= query_len <= 20:
+            length_score = 1.0
+        elif query_len < 5:
+            length_score = max(0, query_len / 5)  # Linear from 0 at 0 words to 1.0 at 5
+        else:  # query_len > 20
+            # Gradual penalty: 1.0 at 20, drops to ~0.7 at 30, ~0.4 at 40
+            length_score = max(0.2, 1.0 - (query_len - 20) / 50)
 
-        # Factor 2: Concept overlap with document
+        # Factor 2: Concept overlap with document (recall: overlap / query_concepts)
         query_concepts = set(self.concept_extractor.extract_concepts(query, max_concepts=8))
         doc_text = doc.get("text", "") or doc.get("content", "") or doc.get("title", "")
-        doc_concepts = set(self.concept_extractor.extract_concepts(doc_text, max_concepts=15))
+        doc_concepts = set(self.concept_extractor.extract_concepts(doc_text, max_concepts=50))
 
         overlap_score = self.concept_extractor.concepts_overlap(query_concepts, doc_concepts)
 
-        # Factor 3: Non-trivial patterns
+        # Factor 3: Non-trivial patterns (softer penalty, especially for short queries)
         trivial_patterns = [r'^ce este', r'^cine este', r'^care este', r'^cum este']
         is_trivial = any(re.match(p, query.lower()) for p in trivial_patterns)
-        trivial_score = 0.5 if is_trivial else 1.0
+        # Only penalize triviality if BOTH trivial AND short (< 8 words)
+        trivial_score = 0.7 if (is_trivial and query_len < 8) else 1.0
 
         # Weighted combination
         score = (overlap_score * 0.4) + (length_score * 0.35) + (trivial_score * 0.25)
@@ -97,7 +116,7 @@ class FastQueryMetrics:
 
     def diversity_score(self, queries: List[str]) -> float:
         """
-        Measure diversity of queries using simple string similarity.
+        Measure diversity of queries using Jaccard similarity (symmetric).
         Returns 0-1 where 1 = maximum diversity.
         """
         if len(queries) <= 1:
@@ -108,7 +127,7 @@ class FastQueryMetrics:
             for j in range(i + 1, len(queries)):
                 q1_concepts = set(self.concept_extractor.extract_concepts(queries[i]))
                 q2_concepts = set(self.concept_extractor.extract_concepts(queries[j]))
-                sim = self.concept_extractor.concepts_overlap(q1_concepts, q2_concepts)
+                sim = self.jaccard_similarity(q1_concepts, q2_concepts)
                 similarities.append(sim)
 
         return 1.0 - mean(similarities)
