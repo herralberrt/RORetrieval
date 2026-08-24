@@ -10,7 +10,7 @@ from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
 
-DEFAULT_INPUT = "data/queries/queries_gemma3.jsonl"
+DEFAULT_INPUT = "data/queries/queries_gemma3_27b.jsonl"
 
 
 def analyze_metrics(input_path: str = DEFAULT_INPUT):

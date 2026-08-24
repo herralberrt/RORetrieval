@@ -17,8 +17,10 @@ src/
 │
 ├── task1_queries/             # Query generation with quality metrics
 │   ├── __init__.py
-│   ├── gemma_query_generation.py   # MAIN: Generate queries with Gemma 3 (vLLM)
+│   ├── gemma_query_generation.py   # MAIN: Generate queries with Gemma 3 27B (vLLM)
 │   ├── query_metrics.py            # Quality / diversity scoring (shared)
+│   ├── build_neighbours.py         # Similar-document map for the multi-doc prompt
+│   ├── rescore_queries.py          # Re-score an old file with the current metrics
 │   ├── analyze_query_metrics.py    # Analyze quality distribution
 │   └── show_concept_overlap_examples.py  # Show concept overlap analysis
 │
@@ -86,20 +88,45 @@ python3 -m src.task1_queries.gemma_query_generation --dry-run
 python3 -m src.task1_queries.gemma_query_generation --max-docs 20000
 
 # On a cluster: 2h SLURM job inside the Apptainer image
-sbatch --partition=<gpu-partition> scripts/slurm/generate_queries.sbatch
+sbatch --partition=dgxa100 scripts/slurm/generate_queries.sbatch
 
 # Analyze metrics distribution
-python3 -m src.task1_queries.analyze_query_metrics --input data/queries/queries_gemma3.jsonl
+python3 -m src.task1_queries.analyze_query_metrics --input data/queries/queries_gemma3_27b.jsonl
 
 # Show concept overlap examples
 python3 -m src.task1_queries.show_concept_overlap_examples
 ```
 
-Key flags: `--model` (default `google/gemma-3-4b-it`), `--backend`
+Key flags: `--model` (default `google/gemma-3-27b-it`, needs an 80GB GPU),
+`--backend`
 (`auto`/`vllm`/`transformers`), `--queries-per-doc`, `--max-docs`,
 `--time-budget-min` (clean stop inside the SLURM slot), `--resume`
 (continue a previous run). See [containers/README.md](containers/README.md)
 for the GPU setup.
+
+**Multi-positive queries.** By default each query has exactly one positive: the
+document it was generated from. To generate queries answerable by a small group
+of near-duplicate articles instead, precompute the neighbours and pass them in:
+
+```bash
+python3 -m src.task1_queries.build_neighbours --output data/queries/neighbours.jsonl
+python3 -m src.task1_queries.gemma_query_generation \
+    --neighbours data/queries/neighbours.jsonl
+```
+
+Documents that have neighbours switch to the multi-document prompt and record
+`similar_doc_ids` plus `prompt_version: v2-multi`; documents without neighbours
+use the single-document prompt unchanged. Neighbours are searched within a
+document type and exclude near-identical re-publications (`--max-similarity`).
+
+**Metric versions.** `query_metrics.py` carries `METRICS_VERSION`, stamped into
+every record's `metrics` block. Version 2 scores ~13% higher than version 1 on
+the same queries, so `--min-quality` thresholds do not carry across versions.
+To bring an old file onto the current scoring:
+
+```bash
+python3 -m src.task1_queries.rescore_queries --input data/queries/queries_gemma3.jsonl
+```
 
 `data/categories/news/` is the concatenation of the ten per-outlet directories
 (identical `doc_id`s), so it is skipped by default to avoid generating every
@@ -132,8 +159,8 @@ python3 -m src.evaluation.ir_pipeline
 
 ## Data Files
 
-- `data/queries/queries_gemma3.jsonl` - Gemma 3 generated queries with quality scores
-- `data/queries/queries_gemma3.jsonl.stats.json` - run manifest (config, throughput, per-type stats)
+- `data/queries/queries_gemma3_27b.jsonl` - Gemma 3 generated queries with quality scores
+- `data/queries/queries_gemma3_27b.jsonl.stats.json` - run manifest (config, throughput, per-type stats)
 - `data/categories/` - documents (news, stories, recipes, summarization)
 - `results/evaluation/` - Evaluation metrics
 - `checkpoints/` - Model checkpoints

@@ -27,7 +27,7 @@ class ConceptExtractor:
         return [word for word, _ in freq.most_common(max_concepts)]
 
 
-QUERIES_PATH = "data/queries/queries_gemma3.jsonl"
+QUERIES_PATH = "data/queries/queries_gemma3_27b.jsonl"
 
 
 def analyze_concept_overlap():

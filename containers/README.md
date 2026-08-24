@@ -1,7 +1,7 @@
 # RORetrieval container (Apptainer)
 
-GPU image for generating Romanian retrieval queries with **Gemma 3**, plus the
-rest of the project stack (sentence-transformers, faiss, datasets).
+GPU image for generating Romanian retrieval queries with **Gemma 3 27B**, plus
+the rest of the project stack (sentence-transformers, faiss, datasets).
 
 | Component | Version | Why |
 |---|---|---|
@@ -70,17 +70,42 @@ kills anything long-running detached with `nohup`.
 
 ## 3. Gemma access (one-time)
 
-Gemma 3 is gated:
+Gemma 3 is gated, and the license is accepted **per repository** — accepting it
+for `gemma-3-4b-it` does not cover `gemma-3-27b-it`:
 
-1. Accept the license at <https://huggingface.co/google/gemma-3-4b-it>
+1. Accept the license at <https://huggingface.co/google/gemma-3-27b-it>
 2. Create a read token at <https://huggingface.co/settings/tokens>
 3. `cp containers/env.example containers/env.sh`, fill in `HF_TOKEN`, then
    `source containers/env.sh`
 
-If compute nodes have no internet, cache the weights from the login node first:
+### Where the weights go
+
+The bf16 27B checkpoint is **~55 GiB**, and a student home on
+fep.grid.pub.ro has a hard 50 GiB CephFS quota:
 
 ```bash
-bash scripts/download_model.sh
+getfattr -n ceph.quota.max_bytes ~     # 53687091200
+```
+
+So the 27B weights cannot live in the home cache. `scripts/hf_cache_dir.sh`
+(sourced by the SLURM job and by `download_model.sh`) checks the quota and
+falls back to node-local scratch — `/tmp/$USER/hf`, on a 1.6 TB local disk —
+when the model does not fit. That cache is per node and does not survive
+between jobs, so the weights are re-fetched each run; the dgxa100 and dgxh100
+nodes have outbound internet and `HF_HUB_ENABLE_HF_TRANSFER=1` parallelises the
+download: a measured cold 27B fetch on dgxa100 took **155 s** (~355 MB/s,
+against ~70 MB/s single-stream), so it costs ~2% of a 110-minute budget.
+
+The relocated cache has no `token` file in it, so the script also carries
+`~/.cache/huggingface/token` over as `HF_TOKEN` — without that a gated download
+fails with a 401.
+
+Only when `HF_HOME` points somewhere big enough (or for smaller models) is
+pre-downloading from the login node useful:
+
+```bash
+bash scripts/download_model.sh                       # default: 27B
+bash scripts/download_model.sh google/gemma-3-4b-it  # fits in home
 ```
 
 ## 4. Run
@@ -94,12 +119,21 @@ apptainer exec --nv \
     python3 -m src.task1_queries.gemma_query_generation --max-docs 2000
 ```
 
+On fep.grid.pub.ro the `student` account can submit to **dgxa100**
+(8× A100-SXM4-80GB) and **dgxh100** (8× H100); `h200`, `hd`, `ml` and
+`sprmcrogpu` are reserved for other accounts, and `xl` (P100) / `haswell`
+(CPU-only) are too small for 27B. Check what is free with:
+
+```bash
+sinfo -O partition:14,nodelist:22,gres:26,gresused:30,statelong:12
+```
+
 Through SLURM (2-hour slot, the intended path):
 
 ```bash
 mkdir -p logs
 source containers/env.sh
-sbatch --partition=<your-gpu-partition> scripts/slurm/generate_queries.sbatch
+sbatch --partition=dgxa100 scripts/slurm/generate_queries.sbatch
 ```
 
 The job stops itself at `QGEN_TIME_BUDGET_MIN` (default 110 min) so it never
@@ -108,19 +142,35 @@ same job continues where it left off (`--resume` skips finished `doc_id`s).
 
 ## 5. Sizing a 2-hour run
 
-Throughput depends heavily on the GPU. Rough numbers for `gemma-3-4b-it` with
-vLLM, 4 queries per document:
+`gemma-3-27b-it` in bf16 needs ~55 GB for weights alone, so it takes one 80 GB
+card (or two 40 GB cards with `TENSOR_PARALLEL=2 --gres=gpu:2`). The SLURM
+script sums the VRAM of the allocated GPUs and refuses to start if there is not
+enough, rather than dying in an OOM after the download.
 
-| GPU | ~docs / 2h |
-|---|---|
-| A100 80GB | 150k+ |
-| A100 40GB / L40S | ~100k |
-| V100 32GB (`DTYPE=float16`) | ~30k |
-| RTX 2080Ti / T4 (`DTYPE=float16`, `MAX_MODEL_LEN=1536`) | ~10-15k |
+| Model | VRAM (bf16) | Fits |
+|---|---|---|
+| `gemma-3-27b-it` | ~63 GB incl. KV cache | A100 80GB, H100, H200; 2× 40GB with TP=2 |
+| `gemma-3-12b-it` | ~33 GB | A100 40GB and up |
+| `gemma-3-4b-it` | ~17 GB | most GPUs |
 
-`MAX_DOCS` defaults to 20000, split evenly across categories — a safe first run
-on any of them. Raise it once you have measured the real rate (the job prints
-`docs/h` at the end and writes it to `<output>.stats.json`).
+Throughput with vLLM, 4 queries per document:
+
+| GPU | 4B: ~docs / 2h | 27B: ~docs / 2h |
+|---|---|---|
+| A100 80GB | 150k+ | 15k+ (see below) |
+| A100 40GB / L40S | ~100k | needs TP=2 |
+| V100 32GB (`DTYPE=float16`) | ~30k | does not fit |
+| RTX 2080Ti / T4 (`DTYPE=float16`, `MAX_MODEL_LEN=1536`) | ~10-15k | does not fit |
+
+The 27B figure is a **floor**, not a measurement of steady state: a 24-document
+smoke run on an A100 80GB reported 7.6k docs/h, but 24 documents never fill a
+batch of 256, so most of that window was ramp-up. Startup itself is fixed
+overhead worth planning around — ~2.5 min to download, ~1 min to load, and
+~2 min of `torch.compile` and CUDA graph capture before the first token.
+
+`MAX_DOCS` defaults to 20000, split evenly across categories — a safe first run.
+Raise it once you have measured the real rate (the job prints `docs/h` at the
+end and writes it to `<output>.stats.json`).
 
 ## 6. Environment variables
 
@@ -132,11 +182,13 @@ Anything that must be visible **inside** the container needs the
 | `HF_TOKEN` | HuggingFace token for the gated Gemma repo |
 | `HF_HOME` | weight cache (point at a large filesystem, not a small home quota) |
 | `HF_HUB_OFFLINE=1` | use only cached weights (offline compute nodes) |
-| `GEMMA_MODEL` | model id, default `google/gemma-3-4b-it` |
+| `GEMMA_MODEL` | model id, default `google/gemma-3-27b-it` |
 | `QGEN_BACKEND` | `auto` \| `vllm` \| `transformers` |
 | `QGEN_OUTPUT` | output JSONL path |
 | `QGEN_TIME_BUDGET_MIN` | wall-clock budget before a clean stop |
 | `DTYPE` | `bfloat16` (Ampere+) or `float16` (V100/T4) |
+| `TENSOR_PARALLEL` | split the model across N GPUs (needs `--gres=gpu:N`) |
+| `GPU_MEM_UTIL` | vLLM memory fraction, default 0.90 |
 
 ## 7. Troubleshooting
 

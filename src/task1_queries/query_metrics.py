@@ -15,6 +15,14 @@ scientific stack installed (e.g. for `--dry-run`).
 import re
 from typing import List, Dict, Any
 
+# Bumped whenever the scoring changes, so scores from different runs are not
+# silently compared. 1 = Jaccard query-document overlap, hard length cliff,
+# flat 0.5 triviality penalty. 2 = recall-style overlap against the top 50
+# document concepts, gradual length penalty, triviality penalty only for short
+# queries. A v1 score and a v2 score of the same query differ by ~13% on
+# average, so a --min-quality threshold tuned against one is wrong for the other.
+METRICS_VERSION = 2
+
 
 def mean(values: List[float]) -> float:
     """Arithmetic mean, 0.0 for an empty sequence."""
@@ -127,7 +135,7 @@ class FastQueryMetrics:
             for j in range(i + 1, len(queries)):
                 q1_concepts = set(self.concept_extractor.extract_concepts(queries[i]))
                 q2_concepts = set(self.concept_extractor.extract_concepts(queries[j]))
-                sim = self.jaccard_similarity(q1_concepts, q2_concepts)
+                sim = self.concept_extractor.jaccard_similarity(q1_concepts, q2_concepts)
                 similarities.append(sim)
 
         return 1.0 - mean(similarities)
@@ -143,4 +151,5 @@ class FastQueryMetrics:
             "avg_quality": float(mean(quality_scores)),
             "diversity": float(self.diversity_score(queries)),
             "num_queries": len(queries),
+            "metrics_version": METRICS_VERSION,
         }

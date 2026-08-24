@@ -36,17 +36,22 @@ class TripletEvaluator:
         metrics = triplet['metrics']
         issues = []
         
+        overlap = metrics.get('ngram_overlap', 0)
+        # Query metrics call this 'diversity', triplet metrics 'diversity_score'.
+        diversity = metrics.get('diversity_score', metrics.get('diversity', 0))
+        entailment = metrics.get('entailment_score', 0)
+        
         # Check n-gram overlap
-        if metrics.get('ngram_overlap', 0) >= self.min_overlap:
-            issues.append(f"High overlap ({metrics['ngram_overlap']:.3f})")
+        if overlap >= self.min_overlap:
+            issues.append(f"High overlap ({overlap:.3f})")
         
         # Check diversity
-        if metrics.get('diversity_score', 0) < self.min_diversity:
-            issues.append(f"Low diversity ({metrics['diversity_score']:.3f})")
+        if diversity < self.min_diversity:
+            issues.append(f"Low diversity ({diversity:.3f})")
         
         # Check entailment
-        if metrics.get('entailment_score', 0) < self.min_entailment:
-            issues.append(f"Low entailment ({metrics['entailment_score']:.3f})")
+        if entailment < self.min_entailment:
+            issues.append(f"Low entailment ({entailment:.3f})")
         
         is_valid = len(issues) == 0
         

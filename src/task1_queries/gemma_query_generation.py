@@ -56,8 +56,8 @@ except ImportError:  # keeps --dry-run usable on a bare login node
         return iterable if iterable is not None else _NoProgress()
 
 
-DEFAULT_MODEL = "google/gemma-3-4b-it"
-DEFAULT_OUTPUT = "data/queries/queries_gemma3.jsonl"
+DEFAULT_MODEL = "google/gemma-3-27b-it"
+DEFAULT_OUTPUT = "data/queries/queries_gemma3_27b.jsonl"
 DEFAULT_CATEGORIES_DIR = "data/categories"
 
 # Categories that hold news articles (one directory per outlet).
@@ -296,11 +296,44 @@ ARTICOLE SIMILARE (context suplimentar):
 JSON:"""
 
 
-def build_prompt(doc: Dict[str, Any], doc_type: str, num_queries: int, max_chars: int) -> Optional[str]:
-    """Build the user message for one document, or None if the document is unusable."""
+# Queries the multi-document prompt asks for ("2-3 întrebări").
+MULTI_DOC_MAX_QUERIES = 3
+
+
+def build_prompt(
+    doc: Dict[str, Any],
+    doc_type: str,
+    num_queries: int,
+    max_chars: int,
+    neighbours: Optional[List[Tuple[Dict[str, Any], str]]] = None,
+    neighbour_max_chars: int = 800,
+) -> Optional[str]:
+    """Build the user message for one document, or None if the document is unusable.
+
+    With `neighbours`, the multi-document prompt asks for queries that every one
+    of the articles answers, which yields queries with several positives instead
+    of exactly one.
+    """
     text = document_text(doc, doc_type, max_chars)
     if len(text) < 80:
         return None
+
+    if neighbours:
+        blocks = []
+        for i, (other, other_type) in enumerate(neighbours, start=1):
+            other_text = document_text(other, other_type, neighbour_max_chars)
+            if len(other_text) < 80:
+                continue
+            blocks.append(f"[Articol similar {i}]\n{other_text}")
+        if blocks:
+            return PROMPT_V2_MULTI_DOC.format(
+                type_hint=TYPE_HINTS.get(doc_type, ""),
+                title=(doc.get("title") or "").strip(),
+                content=text,
+                similar_articles="\n\n".join(blocks),
+            )
+        # Every neighbour was too short to be useful - fall through to single-doc.
+
     return PROMPT_TEMPLATE.format(
         n=num_queries,
         type_hint=TYPE_HINTS.get(doc_type, ""),
@@ -423,7 +456,7 @@ class VLLMBackend:
 
         print(f"▸ Loading {args.model} with vLLM …")
         self.tokenizer = AutoTokenizer.from_pretrained(args.model)
-        self.llm = LLM(
+        llm_kwargs = dict(
             model=args.model,
             dtype=args.dtype,
             max_model_len=args.max_model_len,
@@ -432,6 +465,14 @@ class VLLMBackend:
             seed=args.seed,
             trust_remote_code=True,
         )
+        # Gemma 3 (4B and up) is multimodal, but every prompt here is text.
+        # Telling vLLM so keeps the vision tower out of the memory profile,
+        # which matters at 27B: the weights alone take ~55 of the 80 GB.
+        try:
+            self.llm = LLM(limit_mm_per_prompt={"image": 0}, **llm_kwargs)
+        except (TypeError, ValueError) as exc:
+            print(f"▸ limit_mm_per_prompt rejected ({exc}); loading without it.")
+            self.llm = LLM(**llm_kwargs)
         self.sampling_params = SamplingParams(
             temperature=args.temperature,
             top_p=args.top_p,
@@ -546,21 +587,66 @@ def build_backend(args):
 # Generation run
 # --------------------------------------------------------------------------- #
 
-def load_done_ids(output_path: str) -> set:
-    """Doc ids already present in a previous (possibly interrupted) run."""
-    done = set()
+def load_neighbours(path: str) -> Dict[str, List[str]]:
+    """Read the doc_id -> similar doc_ids map written by build_neighbours.py."""
+    neighbours: Dict[str, List[str]] = {}
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            doc_id = record.get("doc_id")
+            ids = [n.get("doc_id") for n in record.get("neighbours", []) if n.get("doc_id")]
+            if doc_id and ids:
+                neighbours[doc_id] = ids
+    return neighbours
+
+
+def load_documents_by_id(
+    categories_dir: str,
+    wanted: set,
+    categories: Optional[List[str]] = None,
+    include_aggregates: bool = False,
+) -> Dict[str, Tuple[Dict[str, Any], str]]:
+    """Load just the documents named in `wanted`, keyed by doc_id.
+
+    The generator streams documents, but the multi-document prompt needs random
+    access to the neighbours, so those are pulled into memory up front.
+    """
+    found: Dict[str, Tuple[Dict[str, Any], str]] = {}
+    if not wanted:
+        return found
+    for doc, doc_type in iter_documents(categories_dir, categories,
+                                        include_aggregates=include_aggregates):
+        doc_id = doc.get("doc_id")
+        if doc_id in wanted and doc_id not in found:
+            found[doc_id] = (doc, doc_type)
+            if len(found) == len(wanted):
+                break
+    return found
+
+
+def load_done_ids(output_path: str) -> Tuple[set, set]:
+    """Doc ids and generator model ids already present in a previous run."""
+    done, generators = set(), set()
     if not os.path.exists(output_path):
-        return done
+        return done, generators
     with open(output_path, "r", encoding="utf-8") as f:
         for line in f:
             if not line.strip():
                 continue
             try:
-                done.add(json.loads(line).get("doc_id"))
+                record = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            done.add(record.get("doc_id"))
+            generators.add(record.get("generator"))
     done.discard(None)
-    return done
+    generators.discard(None)
+    return done, generators
 
 
 def print_stats(stats: Dict[str, Dict[str, Any]], elapsed: float, docs_done: int) -> None:
@@ -596,9 +682,18 @@ def run(args) -> None:
     output_path = args.output
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
-    done_ids = load_done_ids(output_path) if args.resume else set()
+    done_ids, prev_generators = load_done_ids(output_path) if args.resume else (set(), set())
     if args.resume and done_ids:
         print(f"▸ Resuming: {len(done_ids)} documents already generated.")
+        stale = prev_generators - {args.model}
+        if stale:
+            # --resume skips doc_ids, not models: continuing here would leave one
+            # file holding queries from two different generators, with the
+            # documents silently split between them.
+            print(f"▸ WARNING: {output_path} already holds queries from "
+                  f"{', '.join(sorted(stale))}, not {args.model}. Those "
+                  f"{len(done_ids)} documents will NOT be regenerated. Write to "
+                  f"a separate --output if you want a clean {args.model} run.")
     elif not args.resume and os.path.exists(output_path):
         print(f"▸ Overwriting existing {output_path} (use --resume to continue instead).")
         open(output_path, "w", encoding="utf-8").close()
@@ -613,6 +708,19 @@ def run(args) -> None:
 
     metrics = FastQueryMetrics()
     stats: Dict[str, Dict[str, Any]] = {}
+
+    neighbour_ids: Dict[str, List[str]] = {}
+    neighbour_docs: Dict[str, Tuple[Dict[str, Any], str]] = {}
+    if args.neighbours:
+        neighbour_ids = load_neighbours(args.neighbours)
+        wanted = {n for ids in neighbour_ids.values() for n in ids}
+        neighbour_docs = load_documents_by_id(
+            args.categories_dir, wanted, args.categories, args.include_aggregates,
+        )
+        print(f"▸ Multi-document prompt: {len(neighbour_ids)} documents have "
+              f"neighbours, {len(neighbour_docs)}/{len(wanted)} neighbour "
+              f"documents loaded.")
+
     backend = build_backend(args)
 
     deadline = time.monotonic() + args.time_budget_min * 60 if args.time_budget_min > 0 else None
@@ -631,7 +739,8 @@ def run(args) -> None:
         include_aggregates=args.include_aggregates,
     )
 
-    batch_docs: List[Tuple[Dict[str, Any], str]] = []
+    # (document, type, doc_ids of the neighbours actually shown to the model)
+    batch_docs: List[Tuple[Dict[str, Any], str, List[str]]] = []
     batch_prompts: List[str] = []
 
     progress = tqdm(total=args.max_docs or None, desc="Generating", unit="doc")
@@ -648,8 +757,9 @@ def run(args) -> None:
         else:
             raw_outputs = backend.generate(batch_prompts)
 
-        for (doc, doc_type), raw in zip(batch_docs, raw_outputs):
-            queries = parse_queries(raw, args.queries_per_doc)
+        for (doc, doc_type, used_neighbours), raw in zip(batch_docs, raw_outputs):
+            max_queries = MULTI_DOC_MAX_QUERIES if used_neighbours else args.queries_per_doc
+            queries = parse_queries(raw, max_queries)
             record_metrics = metrics.score_record(queries, doc) if queries else {}
 
             if queries and args.min_quality > 0:
@@ -675,6 +785,12 @@ def run(args) -> None:
                 "metrics": record_metrics,
                 "generator": args.model,
             }
+            if used_neighbours:
+                # Queries were written to be answerable by all of these, so the
+                # triplet stage can treat them as additional positives.
+                record["similar_doc_ids"] = used_neighbours
+                record["prompt_version"] = "v2-multi"
+
             out_file.write(json.dumps(record, ensure_ascii=False) + "\n")
             written += 1
 
@@ -700,7 +816,15 @@ def run(args) -> None:
             if doc_id in done_ids:
                 continue
 
-            prompt = build_prompt(doc, doc_type, args.queries_per_doc, args.max_doc_chars)
+            used_neighbours = [
+                n for n in neighbour_ids.get(doc_id, [])[:args.max_neighbours]
+                if n in neighbour_docs
+            ]
+            prompt = build_prompt(
+                doc, doc_type, args.queries_per_doc, args.max_doc_chars,
+                neighbours=[neighbour_docs[n] for n in used_neighbours],
+                neighbour_max_chars=args.max_neighbour_chars,
+            )
             if prompt is None:
                 skipped_short += 1
                 continue
@@ -715,7 +839,7 @@ def run(args) -> None:
                     break
                 continue
 
-            batch_docs.append((doc, doc_type))
+            batch_docs.append((doc, doc_type, used_neighbours))
             batch_prompts.append(prompt)
 
             if len(batch_prompts) >= args.batch_size:
@@ -812,6 +936,15 @@ def parse_args(argv=None):
                             help="also read data/categories/news/, which duplicates "
                                  "the ten per-outlet directories")
     data_group.add_argument("--max-doc-chars", type=int, default=2000)
+    data_group.add_argument("--neighbours", default=None,
+                            help="JSONL from build_neighbours.py; switches documents "
+                                 "that have neighbours to the multi-document prompt, "
+                                 "so the queries have several positives")
+    data_group.add_argument("--max-neighbours", type=int, default=2,
+                            help="similar articles shown per document (the prompt "
+                                 "is written for 1-2)")
+    data_group.add_argument("--max-neighbour-chars", type=int, default=800,
+                            help="text budget per similar article")
 
     run_group = parser.add_argument_group("run")
     run_group.add_argument("--queries-per-doc", type=int, default=4)
