@@ -1,0 +1,501 @@
+EȘANTION DIN triplets_27b.jsonl  (58.336 triplete)
+Pozitivul este documentul din care a fost generată întrebarea.
+Negativele sunt minate prin căutare densă și filtrate pe banda de similaritate.
+12 triplete per categorie, ordonate de la negativul cel mai greu
+spre cel mai ușor, ca să se vadă ambele capete ale benzii.
+
+==============================================================================
+NEWS   (43161 triplete în total)
+==============================================================================
+
+ÎNTREBARE: Câte cazuri noi de persoane infectate cu SARS-CoV-2 au fost înregistrate în ultimele 24 de ore?
+  POZITIV [ale_000397] BILANȚUL ZILEI. Aproape 4.700 de noi cazuri şi 25 de decese, raportate în ultimele 24 de ore
+      Titlu: BILANȚUL ZILEI. Aproape 4.700 de noi cazuri şi 25 de decese, raportate în ultimele 24 de ore Text: În ultimele 24 de ore au fost înregistrate 4.684 cazuri noi de persoane infectate cu SARS – CoV – 2, cu 1026 mai p
+  NEGATIV sim=0.919 [cot_000967] Numărul infectărilor, la jumătate
+      Titlu: Numărul infectărilor, la jumătate Text: În ultimele 24 de ore au fost înregistrate 2.254 cazuri noi de persoane infectate cu SARS – CoV – 2, cu 397 mai puține față de ziua anterioară. Numărul cazurilor noi este la
+  NEGATIV sim=0.902 [cot_000139] Mii de cazuri noi de persoane infectate cu SARS – CoV – 2
+      Titlu: Mii de cazuri noi de persoane infectate cu SARS – CoV – 2 Text: În ultimele 24 de ore, au fost înregistrate peste 4.600 de cazuri noi de persoane infectate cu SARS – CoV – 2, iar 14 au decedat. În ultimele 24 de o
+  NEGATIV sim=0.901 [lib_002632] Bilanț COVID azi, 16 august 2022. 3.600 de cazuri noi, în ultimele 24 de ore
+      Titlu: Bilanț COVID azi, 16 august 2022. 3.600 de cazuri noi, în ultimele 24 de ore Text: În ultimele 24 de ore au fost înregistrate 3.600 de cazuri noi de persoane infectate cu SARS-CoV-2 (COVID-19), cu 1.346 mai multe 
+
+ÎNTREBARE: Care este rolul Sfântului Mare Mucenic Pricopie în calendarul ortodox?
+  POZITIV [evz_000497] HOROSCOPUL LUI DOM’ PROFESOR, 8 iulie 2022. Vă este cald, nu? Nu vă simțiți bine, nu?
+      Titlu: HOROSCOPUL LUI DOM’ PROFESOR, 8 iulie 2022. Vă este cald, nu? Nu vă simțiți bine, nu? Text: 8 iulie Pe 8 iulie s-au născut John D. Rockefeller, Anjelica Huston, Sir Arthur Evans, Ferdinand von Zeppelin, Şerban Foa
+  NEGATIV sim=0.797 [rea_000025] Sărbătoare 7 august - Zi cu o importanță deosebită în calendarul ortodox - cruce cu roșu
+      Titlu: Sărbătoare 7 august - Zi cu o importanță deosebită în calendarul ortodox - cruce cu roșu Text: Ortodoxe Sf. Cuv. Teodora de la Sihla; Sf. Cuv. Pafnutie - Pârvu Zugravul; Sf. Cuv. Mc. Dometie Persul; Sf. Ier. Narci
+  NEGATIV sim=0.728 [pro_004927] Calendar ortodox 11 august. Cine a fost Sfântul Nifon și ce se sărbătorește în această zi
+      Titlu: Calendar ortodox 11 august. Cine a fost Sfântul Nifon și ce se sărbătorește în această zi Text: Calendar ortodox 11 august. Cine a fost Sfântul Nifon și ce se sărbătorește în această zi Sfântul Nifon, Mitropolitul
+  NEGATIV sim=0.717 [ade_005682] Calendar ortodox 2022, 14 august. Sfinții zilei. Sfântul Proroc Miheia
+      Titlu: Calendar ortodox 2022, 14 august. Sfinții zilei. Sfântul Proroc Miheia Text: Sfântul Proroc Miheia este prăznuit la data de 14 august în calendarul ortodox. Sfântul Proroc Miheia este între sfinții zilei cinstiți 
+
+ÎNTREBARE: Cum a reacționat șoferul autoturismului la semnalele polițiștilor pe bulevardul din Zalău?
+  POZITIV [rea_000692] Cursă nebunească la Zalău. Șofer beat, fără permis și cu numere false, oprit cu zeci de focuri de armă
+      Titlu: Cursă nebunească la Zalău. Șofer beat, fără permis și cu numere false, oprit cu zeci de focuri de armă Text: Potrivit unei postări pe pagina de Facebook Sindicatului Europol, în urma incdentului o altă persoană di
+  NEGATIV sim=0.759 [ade_006565] Şofer urmărit în trafic de poliţişti, în Sectorul 3. Agenţii au tras focuri de avertisment
+      Titlu: Şofer urmărit în trafic de poliţişti, în Sectorul 3. Agenţii au tras focuri de avertisment Text: Poliţia Capitalei a anunţat, duminică, faptul că un echipaj de la Secţia 23 Poliţie i-a făcut semn unui şofer să opr
+  NEGATIV sim=0.721 [lib_002105] Şofer beat urmărit în trafic de poliţişti și oprit cu focuri de armă, în București. Bărbatul e acuzat și de distrugere, după ce a lovit autospeciala agenților
+      Titlu: Şofer beat urmărit în trafic de poliţişti și oprit cu focuri de armă, în București. Bărbatul e acuzat și de distrugere, după ce a lovit autospeciala agenților Text: Poliţia Capitalei a anunţat, duminică, 14 august
+  NEGATIV sim=0.711 [rea_000293] Urmărire ca în filme pe străzile din Dolj. Minor fără permis la volan, oprit de polițiști cu focuri de armă - VIDEO
+      Titlu: Urmărire ca în filme pe străzile din Dolj. Minor fără permis la volan, oprit de polițiști cu focuri de armă - VIDEO Text: „În ziua de 09 august a.c., ora 18:45, polițiști din cadrul Secției nr. 10 Poliție Rurală P
+
+ÎNTREBARE: Ce tip de dezinformare a vizat societatea românească cu câteva săptămâni înainte de situația certificatelor Covid?
+  POZITIV [med_001345] Andrei Baciu: Numărul solicitărilor de emitere a certificatelor Covid a crescut chiar şi cu 8.500%
+      Titlu: Andrei Baciu: Numărul solicitărilor de emitere a certificatelor Covid a crescut chiar şi cu 8.500% Text: Potrivit lui Andrei Baciu, mesajele transmise în ultimele zile au determinat 300.000 de persoane să-şi reemi
+  NEGATIV sim=0.731 [med_005748] Marius Oprea PREZENTUL FĂRĂ PERDEA / Teoria conspiraţiei: e România de fapt un ”stat-cazarmă”, condus din umbră de oculta dintre masoni şi servicii?
+      Titlu: Marius Oprea PREZENTUL FĂRĂ PERDEA / Teoria conspiraţiei: e România de fapt un ”stat-cazarmă”, condus din umbră de oculta dintre masoni şi servicii? Text: Confesiunile unui ”defector” ”Cînd am intrat in Minister, 
+  NEGATIV sim=0.711 [ade_001538] News - Politică
+      Titlu: News - Politică Text: Raluca Boboc Vezi blogul Contact RSS Politică / Putin din Carpaţi După o perioadă de timp în care România reuşise să „dispară” din topul ţărilor „problemă” ale Uniunii Europene, nu pentru că 
+  NEGATIV sim=0.706 [ade_000364] News - Politică
+      Titlu: News - Politică Text: Raluca Boboc Vezi blogul Contact RSS Politică / Putin din Carpaţi După o perioadă de timp în care România reuşise să „dispară” din topul ţărilor „problemă” ale Uniunii Europene, nu pentru că 
+
+ÎNTREBARE: Câte persoane au murit înecate pe litoral de la începutul săptămânii?
+  POZITIV [lib_001435] Doi tineri din Vaslui care lucrau ca sezonieri pe litoral au dispărut în mare. Unul dintre ei, găsit înecat după două zile de căutări
+      Titlu: Doi tineri din Vaslui care lucrau ca sezonieri pe litoral au dispărut în mare. Unul dintre ei, găsit înecat după două zile de căutări Text: Cei doi tineri au fost văzuți intrând în mare marți seara, în jurul orei 
+  NEGATIV sim=0.706 [ade_002642] Steag roşu pe litoralul românesc. În 24 de ore, patru oameni au murit înecaţi, printre care şi un salvamar
+      Titlu: Steag roşu pe litoralul românesc. În 24 de ore, patru oameni au murit înecaţi, printre care şi un salvamar Text: O furtună în largul Mării Negre produce, la mal, valuri înalte şi curenţi deosebit de puternici şi p
+  NEGATIV sim=0.689 [dig_000299] Încă două persoane s-au înecat astăzi pe litoral, după tânărul care a murit dimineață în Saturn
+      Titlu: Încă două persoane s-au înecat astăzi pe litoral, după tânărul care a murit dimineață în Saturn Text: Încă două persoane aflate pe litoral au murit astăzi, după ce au fost scoase din apă de salvamari, informează p
+  NEGATIV sim=0.671 [pro_002669] Știri Video actuale
+      Titlu: Știri Video actuale Text: Cu 12 morți de la începutul sezonului estival, un dispărut și sute de intervenții, salvamarii de pe litoral caută soluții pentru a ajunge cât mai repede la cei aflați în pericol.
+
+ÎNTREBARE: Câte exemplare McLaren 765LT Spider au fost fabricate în ediție limitată?
+  POZITIV [med_000934] Superbolid de 755 de cai putere, pe şoselele din România. RAR: probabil că nu sunt prea căutate
+      Titlu: Superbolid de 755 de cai putere, pe şoselele din România. RAR: probabil că nu sunt prea căutate Text: „Colegii din RAR Griviţa au avut plăcerea să admire unul dintre cele 765 de exemplare ale acestui model fabrica
+  NEGATIV sim=0.681 [pro_003996] Bolid de 380.000 de dolari adus la RAR: Primul astfel de model pentru care eliberăm CIV. Probabil că nu sunt prea căutate
+      Titlu: Bolid de 380.000 de dolari adus la RAR: Primul astfel de model pentru care eliberăm CIV. Probabil că nu sunt prea căutate Text: Bolid de 380.000 de dolari adus la RAR: Primul astfel de model pentru care eliberăm C
+  NEGATIV sim=0.477 [lib_003689] MV Augusta F4 S - Ediția nr. 9 (Motociclete de Legendă)
+      Titlu: MV Augusta F4 S - Ediția nr. 9 (Motociclete de Legendă) Text: Descriere MV Augusta F4 S - Ediția nr. 9 (Motociclete de Legendă) Apariție - 9 iunie Scara 1:18 Fabricate din metal şi plastic injectat (Die cast) Mate
+  NEGATIV sim=0.472 [ade_009693] Câinele-robot de luptă al ruşilor, copie după unul chinezesc, la care au ataşat un lansator de rachete antitanc. Originalul se vinde pe AliExpress cu 2.700 de dolari VIDEO
+      Titlu: Câinele-robot de luptă al ruşilor, copie după unul chinezesc, la care au ataşat un lansator de rachete antitanc. Originalul se vinde pe AliExpress cu 2.700 de dolari VIDEO Text: Sistemul a fost prezentat în timpul
+
+ÎNTREBARE: Ce funcție ocupa Ou Yang Li-hsing în cadrul Ministerului Apărării din Taiwan?
+  POZITIV [zf_000035] Moarte suspectă în Taiwan: oficial care conducea producţia de rachete a făcut atac de cord
+      Titlu: Moarte suspectă în Taiwan: oficial care conducea producţia de rachete a făcut atac de cord Text: Eveniment Un oficial din Taiwan care conducea producţia de rachete a murit sâmbătă dimineaţa din cauza unui atac de 
+  NEGATIV sim=0.657 [dig_001301] Președinta Taiwanului spune că amenințarea militară chineză nu a scăzut
+      Titlu: Președinta Taiwanului spune că amenințarea militară chineză nu a scăzut Text: Amenințarea militară chineză împotriva Taiwanului nu a scăzut, însă guvernul de la Taipei nu va escalada conflictul și nici nu va provo
+  NEGATIV sim=0.639 [evz_000596] China amenință Taiwanul și SUA cu o blocadă și mai dură. Un conflict militar nu este exclus
+      Titlu: China amenință Taiwanul și SUA cu o blocadă și mai dură. Un conflict militar nu este exclus Text: Han Peng, expert al televiziunii chineze a explicat cum vede situația din Taiwan , în contextul vizitelor delegații
+  NEGATIV sim=0.632 [ade_003395] Beijingul încheie exerciţiile militare din jurul Taiwanului, dar se pregăteşte în continuare pentru „apărarea integrităţii teritoriale” a Chinei
+      Titlu: Beijingul încheie exerciţiile militare din jurul Taiwanului, dar se pregăteşte în continuare pentru „apărarea integrităţii teritoriale” a Chinei Text: Armata de Eliberare a Poporului a menţionat că prin operaţiuni
+
+ÎNTREBARE: În ce oraș ucrainean se desfășoară acțiunea filmului „107 Mothers”?
+  POZITIV [cot_000847] Filmul care a câștigat trofeul Anonimul
+      Titlu: Filmul care a câștigat trofeul Anonimul Text: Filmul „107 Mothers”, regizat de Peter Kerekes, a câştigat trofeul Anonimul 2022. Potrivit unui comunicat de presă transmis de Fundaţia Anonimul, lungmetrajul „107 Mot
+  NEGATIV sim=0.634 [dig_003535] Crime de război în Ucraina? Avocata Diana Hatneanu: „E o punere în paranteze a întregului sistem de răspundere internațională”
+      Titlu: Crime de război în Ucraina? Avocata Diana Hatneanu: „E o punere în paranteze a întregului sistem de răspundere internațională” Text: Execuții sumare și gropi comune în orășelul Bucha, de lângă Kiev. Un atac cu bom
+  NEGATIV sim=0.626 [zf_002596] Războiul din Ucraina: lupte grele se dau într-un sat din estul ţării
+      Titlu: Războiul din Ucraina: lupte grele se dau într-un sat din estul ţării Text: Business Internaţional Ucrainenii anunţă că sâmbătă au loc „lupte violente" în satul pe care ruşii susţin că îl controlează, potrivit Reut
+  NEGATIV sim=0.624 [med_003583] Războiul din Ucraina: lupte grele se dau într-un sat din estul ţării
+      Titlu: Războiul din Ucraina: lupte grele se dau într-un sat din estul ţării Text: Războiul din Ucraina: lupte grele se dau într-un sat din estul ţării Ucrainenii anunţă că sâmbătă au loc „lupte violente" în satul pe care
+
+ÎNTREBARE: Ce tip de semn zodiacal este Scorpionul și cum influențează acest lucru personalitatea nativilor?
+  POZITIV [ade_001153] 3 zodii negre la suflet. Fugi din calea lor! Lasă în urmă numai lacrimi și durere
+      Titlu: 3 zodii negre la suflet. Fugi din calea lor! Lasă în urmă numai lacrimi și durere Text: Descoperă mai jos care sunt zodiile cu un suflet negru, de care trebuie să te fereşti de acum încolo! Fecioara Fecioara s-a o
+  NEGATIV sim=0.611 [lib_003625] Zodiile de Apă. Caracteristici, temperament și relația cu celelalte zodii
+      Titlu: Zodiile de Apă. Caracteristici, temperament și relația cu celelalte zodii Text: Zodiile de Apă sunt Rac, Scorpion și Pești. Prima dintre ele, Racul, este o zodie cardinală, Scorpionul este o zodie fixă, iar zodia 
+  NEGATIV sim=0.611 [lib_003337] Zodiile de Apă. Caracteristici, temperament și relația cu celelalte zodii
+      Titlu: Zodiile de Apă. Caracteristici, temperament și relația cu celelalte zodii Text: Zodiile de Apă sunt Rac, Scorpion și Pești. Prima dintre ele, Racul, este o zodie cardinală, Scorpionul este o zodie fixă, iar zodia 
+  NEGATIV sim=0.611 [lib_002916] Zodiile de Apă. Caracteristici, temperament și relația cu celelalte zodii
+      Titlu: Zodiile de Apă. Caracteristici, temperament și relația cu celelalte zodii Text: Zodiile de Apă sunt Rac, Scorpion și Pești. Prima dintre ele, Racul, este o zodie cardinală, Scorpionul este o zodie fixă, iar zodia 
+
+ÎNTREBARE: Câte bilete pentru tururile în „orașele curajoase” au fost vândute până acum?
+  POZITIV [zf_000933] Turism de război: O companie propune tururi cu ghid prin oraşele afectate de război din Ucraina
+      Titlu: Turism de război: O companie propune tururi cu ghid prin oraşele afectate de război din Ucraina Text: Business Internaţional O companie de turism încearcă să convingă turiştii să viziteze Ucraina chiar acum, în ti
+  NEGATIV sim=0.587 [ade_010499] Bişniţarii profită de interesul uriaş pentru meciul FCSB - Viking, din Conference League. Cât au ajuns să coste biletele „la negru”
+      Titlu: Bişniţarii profită de interesul uriaş pentru meciul FCSB - Viking, din Conference League. Cât au ajuns să coste biletele „la negru” Text: Până miercuri după-amiază, s-au dat peste 22.000 de bilete din cele 30.000 
+  NEGATIV sim=0.576 [lib_001507] O agenție de turism din Ucraina organizează tururi ghidate prin orașele bombardate. S-au înscris deja 150 de turiști
+      Titlu: O agenție de turism din Ucraina organizează tururi ghidate prin orașele bombardate. S-au înscris deja 150 de turiști Text: În ciuda alertelor internaționale care avertizează asupra pericolului unei călătorii în Uc
+  NEGATIV sim=0.557 [rea_000194] Români blocați 17 ore în aeroport. Compania aeriană a vândut mai multe bilete pe același loc
+      Titlu: Români blocați 17 ore în aeroport. Compania aeriană a vândut mai multe bilete pe același loc Text: Acesta a fost și cazul a doi tineri din Botoșani. Într-un aeroport din Londra, chiar înainte de îmbarcare, ei au a
+
+ÎNTREBARE: La ce stație hidrometrică a secat, pentru prima dată, Valea Obârșa?
+  POZITIV [med_000987] Apele Române: 16 cursuri de apă au secat în spaţiul hidrografic Crişuri, în iulie
+      Titlu: Apele Române: 16 cursuri de apă au secat în spaţiul hidrografic Crişuri, în iulie Text: În luna iulie 2022, în spaţiul hidrografic Crişuri, au secat 16 cursuri de apă şi s-au înregistrat debite minime istorice la 
+  NEGATIV sim=0.561 [ade_010101] Marele baraj din România construit în 35 de ani, rămas fără lac de acumulare. De ce s-au oprit lucrările VIDEO
+      Titlu: Marele baraj din România construit în 35 de ani, rămas fără lac de acumulare. De ce s-au oprit lucrările VIDEO Text: La peste 35 de ani de la începerea lucrărilor la Acumularea Mihăileni, barajul viitorului lac de
+  NEGATIV sim=0.561 [ade_009110] Seceta ameninţă o staţiune balneară. Balta Albă a Buzăului începe să arate a deşert. Nivelul apei a scăzut cu doi metri
+      Titlu: Seceta ameninţă o staţiune balneară. Balta Albă a Buzăului începe să arate a deşert. Nivelul apei a scăzut cu doi metri Text: Balta Albă seacă rapid dinspre mal şi pare că micşorarea luciului de apă este de neopri
+  NEGATIV sim=0.553 [rea_000283] Situație revoltătoare la Botoșani. Gheretă dărâmată cu mii de euro pe banii spitalului
+      Titlu: Situație revoltătoare la Botoșani. Gheretă dărâmată cu mii de euro pe banii spitalului Text: Construcţia era între două chioşcuri, chiar la intrarea în curtea Spitalului Județean de Urgenţă Botoșani. Realizată înc
+
+ÎNTREBARE: Cum se manifestă tradiția Circovilor de vară în relația dintre femei și bărbați?
+  POZITIV [evz_000410] HOROSCOPUL LUI DOM’ PROFESOR 16,17 iulie 2022. All your base are belong to us
+      Titlu: HOROSCOPUL LUI DOM’ PROFESOR 16,17 iulie 2022. All your base are belong to us Text: 16,17 iulie Pe 16 iulie s-au născut Ginger Rogers, Ruben Blades, Ronald Amundsen, Andrea del Sarto, Gheorghe Cozorici, Dimitrie A
+  NEGATIV sim=0.527 [lib_001363] Tot ce vreți să purtați în vacanța de vară găsiți pe remixshop.com
+      Titlu: Tot ce vreți să purtați în vacanța de vară găsiți pe remixshop.com Text: Sezonul estival a venit cu inspirația dulce de vară și ne reîncarcă pasiunea pentru modă. Viziunile noastre pentru fuste, rochii, ochelari d
+  NEGATIV sim=0.503 [med_005868] Serile de august aduc spectacole gratuite în aer liber la Veranda Mall
+      Titlu: Serile de august aduc spectacole gratuite în aer liber la Veranda Mall Text: Serile de august aduc spectacole gratuite în aer liber la Veranda Mall În perioada 10-25 august, cei ce vor să profite din plin de ultim
+  NEGATIV sim=0.503 [pro_005732] Zeci de mii de tineri au petrecut momente magice în prima seară de Summer Well. Cine a urcat pe scenă
+      Titlu: Zeci de mii de tineri au petrecut momente magice în prima seară de Summer Well. Cine a urcat pe scenă Text: Zeci de mii de tineri au petrecut momente magice în prima seară de Summer Well. Cine a urcat pe scenă Cei
+
+==============================================================================
+RECIPES   (3081 triplete în total)
+==============================================================================
+
+ÎNTREBARE: Ce cantitate de ceafă de porc este recomandată pentru prepararea frigaruiilor, conform rețetei?
+  POZITIV [rec_000326] Frigarui de porc, sau Shashlyk rusesc
+      Titlu: Frigarui de porc, sau Shashlyk rusesc Ingrediente: ● Ceafa de porc - 2 kg (puteti combina cu fleica de porc) ● Ceapa alba - 5 buc (alegeti ceapa de dimensiune medie) ● Bere - 350 ml (neagra, alba, chiar si fara al
+  NEGATIV sim=0.854 [rec_000527] Piept de porc la cuptor (legat)
+      Titlu: Piept de porc la cuptor (legat) Ingrediente: ● Piept de porc - 1 kg (Alegeti pieptul sa fie cu mai putina grasime si neaparat cu sorici.) ● Sare - 1 lingurita ● Piper negru - 1 lingurita ● Coriandru macinat - 1 li
+  NEGATIV sim=0.849 [rec_000518] Carne de porc cu cascaval si ceapa, la cuptor
+      Titlu: Carne de porc cu cascaval si ceapa, la cuptor Ingrediente: ● Cotlet de porc fara os - 500 g (sau orice carne preferata, friptura de porc sau carne de vitel) ● Maioneza - 200 g (se poate si fara maioneza, dar carne
+  NEGATIV sim=0.829 [rec_000159] Friptura de porc cu ceapa, la cuptor
+      Titlu: Friptura de porc cu ceapa, la cuptor Ingrediente: ● Ceafa de porc - 1.5 kg (o bucata intreaga/feliata de ceafa, sau orice alta carne de porc preferati) ● Ceapa - 5 buc ● Unt - 50 g ● Sos de soia - 5 linguri ● Otet
+
+ÎNTREBARE: Ce cantitate de ciocolată neagră este necesară pentru rețeta de fursecuri "Trufe"?
+  POZITIV [rec_000516] Fursecuri "Trufe"
+      Titlu: Fursecuri "Trufe" Ingrediente: ● Ciocolata neagra/amaruie - 200 g ● Unt - 90 g ● Zahar - 100 g ● Oua - 2 buc ● Faina alba calitate superioara - 200 g ● Cacao pudra - 25 g ● Praf de copt - 0.5 lingurite ● Sare - 0.
+  NEGATIV sim=0.759 [rec_000095] Budinca de gris cu ciocolata
+      Titlu: Budinca de gris cu ciocolata Ingrediente: ● Lapte - 1 l ● Ciocolata - 100 g ● Gris - 100 g ● Zahar - 150 g ● Unt - 1 lingura ● Esenta de vanilie - 1 buc (sau de cafea, rom, etc.) Text: 1. Laptele se pune la fiert,
+  NEGATIV sim=0.756 [rec_000738] Prajitura cu pere si ciocolata
+      Titlu: Prajitura cu pere si ciocolata Ingrediente: ● Oua - 2 buc ● Unt - 80 g (unt moale, la temperatura camerei) ● Zahar - 150 g ● Lapte - 150 ml ● Faina alba - 200 g ● Praf de copt - 10 g ● Ciocolata neagra - 100 g (sa
+  NEGATIV sim=0.742 [rec_000494] Crema de ciocolata(Ganache)
+      Titlu: Crema de ciocolata(Ganache) Ingrediente: ● Ciocolata neagra/amaruie - 250 g (procent de cacao minim 55%) ● Smantana dulce 32%(dorna/milli) - 200 ml ● Unt - 50 g (moale, la temperatura camerei) Text: 1. Intr-un bol
+
+ÎNTREBARE: Ce cantitate de unt topit este necesară pentru prepararea baclavelei turcești?
+  POZITIV [rec_000802] Baclava turceasca
+      Titlu: Baclava turceasca Ingrediente: ● Foi de placinta - 26 buc (cam 2 pachete de foi, cantitatea depinde de producator - voi trebuie sa aveti in final 26 de foi fine) ● Unt - 300 g (topit) ● Nuci - 300 g ● Scortisoara 
+  NEGATIV sim=0.732 [rec_000626] Pui la cuptor in stil turcesc Reteta
+      Titlu: Pui la cuptor in stil turcesc Reteta Ingrediente: ● Carne de pui - 1 kg (chiar si un pic mai multa carne, marinada va ajunge) ● Scortisoara - 0.5 lingurite ● Piper negru macinat - 0.5 lingurite (mai bine piper alb
+  NEGATIV sim=0.726 [rec_000291] Cartofi cu carne si cascaval, la cuptor
+      Titlu: Cartofi cu carne si cascaval, la cuptor Ingrediente: ● Piept de pui - 500 g (dezosat si fara piele) ● Cartofi albi/galbeni - 3 buc (mai mari) ● Maioneza - 200 g (eu am pus smantana) ● Cascaval clasic - 200 g ● Sar
+  NEGATIV sim=0.697 [rec_000603] Toba de pui/curcan Reteta
+      Titlu: Toba de pui/curcan Reteta Ingrediente: ● Piept de pui - 800 g ● Pulpe de pui dezosate si fara piele - 700 g ● Usturoi (catei) - 3 buc (sau 1 lingurita de usturoi granulat uscat) ● Piper negru - 0.5 lingurite ● Boi
+
+ÎNTREBARE: Ce cantități de nucșoară, ghimbir și ienibahar macinat sunt indicate pentru a aromatiza turta dulce?
+  POZITIV [rec_000190] Turta dulce aromata, cu zahar caramelizat
+      Titlu: Turta dulce aromata, cu zahar caramelizat Ingrediente: ● Zahar - 260 g (+1 lingura pentru caramelizare) ● Apa clocotita - 125 ml ● Oua - 1 buc (+1 albus pentru glazura) ● Unt - 50 g ● Faina alba - 480 g ● Scortiso
+  NEGATIV sim=0.709 [rec_000056] Turta dulce moale glazurata
+      Titlu: Turta dulce moale glazurata Ingrediente: ● Lapte batut/iaurt/chefir - 250 ml ● Zahar - 250 g ● Oua - 1 buc (+ 1 albus pentru glazura) ● Ulei de floarea soarelui - 3 linguri ● Praf de copt - 1 lingurita ● Cacao pud
+  NEGATIV sim=0.709 [rec_000653] Iahnie de fasole
+      Titlu: Iahnie de fasole Ingrediente: ● Fasole uscata alba - 500 g (+ 2 frunze de dafin la fiert) ● Ceapa alba - 1 buc ● Pasta de tomate - 1 lingura (eu folosesc pasta de ardei dulce pt culoare mai intensa de rosi si gust
+  NEGATIV sim=0.705 [rec_000205] Turta dulce Reteta
+      Titlu: Turta dulce Reteta Ingrediente: ● Oua - 4 buc ● Zahar pudra - 200 g ● Miere - 9 linguri (sau 150g) ● Bicarbonat de sodiu - 1 lingurita (stins cu 2 linguri de otet) ● Scortisoara - 1 lingurita (si 1 lingura de caca
+
+ÎNTREBARE: Cum se poate prepara carnea de pui înainte de a fi adăugată în compoziția drobului?
+  POZITIV [rec_000096] Drob-coronita in aluat de foietaj Reteta
+      Titlu: Drob-coronita in aluat de foietaj Reteta Ingrediente: ● Oua fierte - 6 buc ● Oua - 6 buc ● Ceapa verde - 5 buc ● Usturoi verde - 5 buc ● Patrunjel verde si marar verde - 1 buc (adica 1 legatura, in plus puteti pun
+  NEGATIV sim=0.693 [rec_000467] Placinta cu chiftele de carne si cascaval
+      Titlu: Placinta cu chiftele de carne si cascaval Ingrediente: ● Carne tocata de pui - 300 g (puteti adauga in ea 1 ou si mirodenii dupa plac - carnea poate fi nu neaparat de pui) ● Cascaval clasic - 150 g ● Oua - 3 buc ●
+  NEGATIV sim=0.683 [rec_000352] Rulada cu omleta si piept de pui
+      Titlu: Rulada cu omleta si piept de pui Ingrediente: ● Piept de pui - 1 buc ● Oua - 3 buc ● Maioneza - 200 g ● Faina - 3 linguri ● Nuci - 30 g ● Patrunjel verde - 1 buc (adica 1 legatura) Text: 1. Puneti la fiert pieptul
+  NEGATIV sim=0.666 [rec_000555] Snitel Parizian din piept de pui
+      Titlu: Snitel Parizian din piept de pui Ingrediente: ● Piept de pui - 2 buc (dezosat si fara piele) ● Oua - 3 buc ● Faina - 200 g ● Lapte - 3 linguri ● Sare - 1 lingurita ● Piper negru - 0.5 lingurite ● Ulei de floarea s
+
+ÎNTREBARE: La ce temperatură și pentru cât timp se recomandă coacerea cartofilor crocanti la cuptor?
+  POZITIV [rec_000259] Cartofi crocanti la cuptor
+      Titlu: Cartofi crocanti la cuptor Ingrediente: ● Cartofi - 1 kg (mai bine luati cartofi roz, au mai putin amidon si se comporta mai bine la cuptor) ● Faina de malai - 4 linguri (din aia pt mamaliga) ● Ulei de floarea soa
+  NEGATIV sim=0.677 [rec_000572] Galuste rapide de cartofi, de post
+      Titlu: Galuste rapide de cartofi, de post Ingrediente: ● Cartofi albi/galbeni - 1 kg ● Sare - 2 linguri ● Ulei - 4 linguri (plus ulei pentru calit ciupercile, optional) ● Faina alba - 350 g ● Ciuperci albe proaspete - 50
+  NEGATIV sim=0.652 [rec_000429] Chiftele la cuptor cu cartofi
+      Titlu: Chiftele la cuptor cu cartofi Ingrediente: ● Carne tocata - 700 g (oricare preferati, dar ar fi bine sa fie ceva mai grasa) ● Cartofi - 1 kg ● Oua - 1 buc ● Ceapa - 1 buc ● Piper negru macinat - 0.5 lingurite ● Pa
+  NEGATIV sim=0.557 [rec_000412] Draniki cu cartofi
+      Titlu: Draniki cu cartofi Ingrediente: ● Cartofi - 1 kg ● Oua - 2 buc ● Faina alba calitate superioara - 2 linguri ● Piper negru - 0.5 lingurite ● Sare - 1 lingurita ● Ulei de floarea soarelui - 200 ml Text: 1. Cartofii 
+
+ÎNTREBARE: Care este rolul grișului de grâu în rețeta de plăcintă cu mere?
+  POZITIV [rec_000468] Placinta cu mere Reteta
+      Titlu: Placinta cu mere Reteta Ingrediente: ● Mere - 8 buc (cam 1 kg de mere) ● Zahar - 100 g (+ 3 linguri pentru umplutura cu mere(30g)) ● Smantana - 3 linguri (smantana simpla, fermentata) ● Oua - 2 buc ● Unt - 250 g (
+  NEGATIV sim=0.662 [rec_000228] Prajitura "turnata" cu mere
+      Titlu: Prajitura "turnata" cu mere Ingrediente: ● Oua - 2 buc ● Zahar - 9 linguri (plus zaharul pentru a indulci umplutura cu mere, il puneti dupa gust) ● Ulei de floarea soarelui - 9 linguri ● Lapte - 9 linguri ● Faina 
+  NEGATIV sim=0.646 [rec_000215] Prajitura cu mere Reteta
+      Titlu: Prajitura cu mere Reteta Ingrediente: ● Faina alba calitate superioara - 150 g (un pahar) ● Zahar - 200 g (un pahar) ● Oua - 3 buc ● Mere ionatan - 4 buc (sau orice alt tip de mere mai acrisoare si aromate) ● Unt 
+  NEGATIV sim=0.642 [rec_000764] Placinta cu mere
+      Titlu: Placinta cu mere Ingrediente: ● Aluat foietaj(frantuzesc) - 450 g (Jumatate din pachetul care se gaseste in comert) ● Mere ionatan - 1 kg (Alegeti mere mai aromate si acrisoare.) ● Zahar - 1 pahar ● Scortisoara - 
+
+ÎNTREBARE: La ce temperatură și pentru cât timp trebuie coaptă pâinea aromată cu cascaval?
+  POZITIV [rec_000310] Paine aromata cu cascaval
+      Titlu: Paine aromata cu cascaval Ingrediente: ● Apa calda - 250 ml ● Drojdie uscata - 10 g (sau 25g proaspata) ● Zahar - 1 lingura ● Sare - 1 lingurita ● Ulei de masline - 30 ml (sau ulei simplu) ● Faina alba calitate su
+  NEGATIV sim=0.647 [rec_000549] Crutoane aromate
+      Titlu: Crutoane aromate Ingrediente: ● Paine - 200 g (puteti folosi orice paine, eu de obicei folosesc paine mai veche care nu mai vrea s-o manance nimeni. Aici la reteta am folosit paine integrala de casa.) ● Ulei de ma
+  NEGATIV sim=0.635 [rec_000044] Conopida pane
+      Titlu: Conopida pane Ingrediente: ● Conopida - 1 buc ● Faina alba - 1 pahar ● Oua - 4 buc ● Sare - 2 lingurite ● Piper negru - 0.25 lingurite Text: 1. Conopida se spala si se desface pe bucatele. 2. Se pun intr-o cratita
+  NEGATIV sim=0.613 [rec_000408] Pita Bread, sau Lipie Arabeasca
+      Titlu: Pita Bread, sau Lipie Arabeasca Ingrediente: ● Apa calda - 360 ml ● Drojdie uscata - 7 g ● Zahar - 1 lingurita ● Sare - 1 lingurita ● Faina alba - 500 g (si inca putina faina pentru a lucra lipiile pe masa) ● Ulei
+
+ÎNTREBARE: De ce este important să se utilizeze un bol mixer pentru prepararea cozonacului rapid Tupperware?
+  POZITIV [rec_000608] Cozonac rapid Tupperware
+      Titlu: Cozonac rapid Tupperware Ingrediente: ● Faina alba calitate superioara - 1 kg (ar fi bine sa fie tinuta 24 de ore langa o sursa de caldura, sa fie uscata bine) ● Oua - 4 buc ● Lapte - 450 ml ● Zahar - 350 g ● Droj
+  NEGATIV sim=0.629 [rec_000770] Paste Tupperware
+      Titlu: Paste Tupperware Ingrediente: ● Paste - 200 g (puneti conform instructiunilor din manualul de utilizare) ● Apa - 500 ml (cantitate aproximativa - puneti conform manualului si indicatorului de pe fierbator) Text: 1
+  NEGATIV sim=0.613 [rec_000208] Clatite Tupperware
+      Titlu: Clatite Tupperware Ingrediente: ● Lapte - 250 ml ● Oua - 1 buc ● Faina - 7 linguri ● Ulei de floarea soarelui - 1 lingura ● Sare - 0.5 lingurite Text: 1. Puneti toate ingredientele in Magic MIxer, exact in ordinea
+  NEGATIV sim=0.595 [rec_000193] Paste Tupperware2 (in Termotop)
+      Titlu: Paste Tupperware2 (in Termotop) Ingrediente: ● Paste grau dur - 250 g ● Apa clocotita - 2 l (aproximativ) Text: 1. Pastele se pun in termotop. 2. Turnati apa clocotita, ca sa fie plin vasul negru. Amestecati cu o 
+
+ÎNTREBARE: Care este rolul amestecului de maioneză și smântână în rețeta salatei "Ursul Polar"?
+  POZITIV [rec_000545] Salata "Ursul Polar"
+      Titlu: Salata "Ursul Polar" Ingrediente: ● Cartofi - 2 buc ● Piept de pui - 1 buc ● Castraveti murati/in otet - 6 buc ● Ciuperci albe proaspete - 250 g ● Oua - 4 buc ● Cascaval clasic - 150 g ● Maioneza - 200 g ● Smantan
+  NEGATIV sim=0.608 [rec_000434] Iaurt cu miere si nuci - desert grecesc
+      Titlu: Iaurt cu miere si nuci - desert grecesc Ingrediente: ● Iaurt Grecesc - 500 g (alegeti orice iaurt va place, dar sa nu fie prea lichid) ● Esenta de vanilie - 1 buc ● Miere de albine - 4 linguri ● Amestesc de nuci -
+  NEGATIV sim=0.559 [rec_000046] Tort "Fluture"
+      Titlu: Tort "Fluture" Ingrediente: ● Pandispan - 1 buc (un pandispan pregatit din timp, de 26-28cm in diametru) ● Crema ganache de ciocolata alba - 1 buc (link-ul la reteta il gasiti la Pasul 2) ● Smantana dulce pentru f
+  NEGATIV sim=0.558 [rec_000551] Monkey Butter
+      Titlu: Monkey Butter Ingrediente: ● Ananas bucati/conserva - 1 buc (conserva de 375-400g, sau ananas proaspat) ● Banane - 3 buc (de dimensiune medie) ● Nuca de cocos - 25 g (razuita, uscata) ● Lamaie - 1 buc ● Zahar - 15
+
+ÎNTREBARE: Ce tip de ulei poate fi folosit în rețeta de salată de icre de post, pe lângă uleiul de măsline?
+  POZITIV [rec_000542] Salata de icre de post (din seminte de chia)
+      Titlu: Salata de icre de post (din seminte de chia) Ingrediente: ● Seminte de chia - 30 g (3 linguri) ● Apa - 100 ml ● Suc de lamaie - 2 linguri ● Ulei de masline - 1 lingura (sau de f.soarelui) ● Sare - 0.5 lingurite (r
+  NEGATIV sim=0.579 [rec_000312] Ulei aromat chinezesc
+      Titlu: Ulei aromat chinezesc Ingrediente: ● Ulei de arahide - 200 ml (puteti sa-l inlocuti cu ulei de rapita) ● Ceapa verde - 1 buc (luati doar partea alba, eu am pus jumatate de ceapa alba simpla) ● Piper Sichuan - 3 li
+  NEGATIV sim=0.574 [rec_000168] Zacusca rapida de dovlecei, la tigaie
+      Titlu: Zacusca rapida de dovlecei, la tigaie Ingrediente: ● Dovlecei - 3 buc ● Ulei - 50 ml (eu folosesc de obicei ulei de masline) ● Ceapa - 1 buc ● Pasta de rosii - 2 linguri ● Sare - 1 lingurita (potriviti dupa gust) 
+  NEGATIV sim=0.571 [rec_000151] Salata cu mazare si ciuperci marinate
+      Titlu: Salata cu mazare si ciuperci marinate Ingrediente: ● Mazare verde la conserva - 400 g ● Ciuperci marinate - 200 g ● Ceapa verde - 1 buc (1 legatura sau ceapa simpla) ● Ulei de masline - 2 linguri (sau orice alt ul
+
+ÎNTREBARE: Ce rol are mustarul în procesul de preparare a meatballs cu ouă?
+  POZITIV [rec_000576] Meatballs cu oua
+      Titlu: Meatballs cu oua Ingrediente: ● Carne tocata amestec(vita/porc) - 600 g ● Ceapa alba - 2 buc ● Usturoi - 2 buc (adica 2 catei) ● Amestec verdeata(ceapa,marar, patrunjel) - 1 buc (1 legatura) ● Oua fierte - 6 buc ●
+  NEGATIV sim=0.542 [rec_000352] Rulada cu omleta si piept de pui
+      Titlu: Rulada cu omleta si piept de pui Ingrediente: ● Piept de pui - 1 buc ● Oua - 3 buc ● Maioneza - 200 g ● Faina - 3 linguri ● Nuci - 30 g ● Patrunjel verde - 1 buc (adica 1 legatura) Text: 1. Puneti la fiert pieptul
+  NEGATIV sim=0.526 [rec_000555] Snitel Parizian din piept de pui
+      Titlu: Snitel Parizian din piept de pui Ingrediente: ● Piept de pui - 2 buc (dezosat si fara piele) ● Oua - 3 buc ● Faina - 200 g ● Lapte - 3 linguri ● Sare - 1 lingurita ● Piper negru - 0.5 lingurite ● Ulei de floarea s
+  NEGATIV sim=0.521 [rec_000467] Placinta cu chiftele de carne si cascaval
+      Titlu: Placinta cu chiftele de carne si cascaval Ingrediente: ● Carne tocata de pui - 300 g (puteti adauga in ea 1 ou si mirodenii dupa plac - carnea poate fi nu neaparat de pui) ● Cascaval clasic - 150 g ● Oua - 3 buc ●
+
+==============================================================================
+STORIES   (6014 triplete în total)
+==============================================================================
+
+ÎNTREBARE: Cum a răspuns Dumnezeu lui Ivan când l-a întrebat cine este?
+  POZITIV [sto_000151] Ivan Turbincă
+      Titlu: Ivan Turbincă Autor: Ion Creangă Text: – Bună calea, Ivane, zise Dumnezeu. Dar cânţi, cânţi, nu te-ncurci! – Mulţumesc d-voastră, zise Ivan, tresărind. Dar de unde ştii aşa de bine că mă cheamă Ivan? – D-apoi, dac
+  NEGATIV sim=0.821 [sto_000158] Ivan Turbincă
+      Titlu: Ivan Turbincă Autor: Ion Creangă Text: Ivan însă nici nu se gândea la asta; el îşi căuta acum de drum, întrebând din om în om unde şede Dumnezeu. Dar toţi pe câţi îi întreba dădeau din umere, neştiind ce să răspun
+  NEGATIV sim=0.796 [sto_000171] Ivan Turbincă
+      Titlu: Ivan Turbincă Autor: Ion Creangă Text: Dumnezeu atunci, văzând până unde merge îndrăzneala lui Ivan, a început a se cam lua şi el pe gânduri de năzdrăv ăniile lui! Şi aşa, a zis Dumnezeu să se desfacă sicriul acol
+  NEGATIV sim=0.777 [sto_000164] Ivan Turbincă
+      Titlu: Ivan Turbincă Autor: Ion Creangă Text: Dumnezeu, însă, ştia de toate acestea, dar voia să mai facă şi pe cheful lui Ivan, nu tot pe-a Morţii; căci multe bunătăţi mai făcuse şi ea în viaţa ei! – Ia deschide, Sfinte
+
+ÎNTREBARE: Ce reacție a avut fiul împăratului când a găsit urme de oameni în câmpie?
+  POZITIV [sto_001232] Cele trei rodii aurite
+      Titlu: Cele trei rodii aurite Autor: Petre Ispirescu Text: Mâhnit de ciudata întâmplare, mergea către împărăţia tatălui său cu rodia care îi mai rămăsese, şi se uita la dânsa ca la un cireş copt; şi merse până ajunse la 
+  NEGATIV sim=0.723 [sto_001431] Hoţu împărat
+      Titlu: Hoţu împărat Autor: Petre Ispirescu Text: Vezi că fiul împăratului era mai ager de mână, mai isteţ şi mai îndrăzneţ. Într-una din zile, feciorul de împărat se duse la vânat, ia aşa cam în dorul lelii, fiindcă n-av
+  NEGATIV sim=0.694 [sto_001041] Ileana Simziana
+      Titlu: Ileana Simziana Autor: Petre Ispirescu Text: Ceilalţi fii de împăraţi cari slujeau acolo îi ieşiră înainte şi o întâmpinară. Ei nu se puteau dezlipi de dânsa, căci şi vorba-i şi faţa îi erau cu lipici. A doua zi s
+  NEGATIV sim=0.675 [sto_012281] Prăsila regală
+      Titlu: Prăsila regală Autor: Anton Bacalbașa Text: A fost odată un împărat. Și împăratul ăsta era calic de mama focului. își întorcea chipiul pe dos cînd se învechea, făcea negoț de brînză și de unt proaspăt, aducea pînă
+
+ÎNTREBARE: Cum este descrisă căsuța în care ajung Harap-Alb și calul?
+  POZITIV [sto_000056] Povestea lui Harap-Alb
+      Titlu: Povestea lui Harap-Alb Autor: Ion Creangă Text: Sfânt să fie rostul tătâne-meu, că bine m-a învăţat! Aşa-i că, dacă n-am ţinut seamă de vorbele lui, am ajuns slugă la dârloagă şi acum, vrând-nevrând, trebuie s-asc
+  NEGATIV sim=0.700 [sto_000040] Povestea lui Harap-Alb
+      Titlu: Povestea lui Harap-Alb Autor: Ion Creangă Text: Apoi mai scoate dintr-un gherghiriu nişte straie foarte vechi, un arc, nişte săgeţi, un paloş şi un buzdugan, toate pline de rugină, şi se apucă de le grijeşte bine 
+  NEGATIV sim=0.684 [sto_000808] Gura satului
+      Titlu: Gura satului Autor: Ioan Slavici Text: Peste puțin Mitrea scoase din grajd doi cai înalți și trupeși și-i duse de căpăstru la fântâna din fundul curții. Sosiră apoi vacile lăptoase, porcii lacomi, caprele neastâmp
+  NEGATIV sim=0.666 [sto_008407] Opera lui del Chiaro
+      Titlu: Opera lui del Chiaro Autor: Nicolae Iorga Text: Vizitiul nu stă la spatele stăpînului, ci e călare pe calul din stînga; la spatele jupănesei stă cutare dintre servitoarele ei care o întovărășește. Boierii obișnuie
+
+ÎNTREBARE: Cum ajunge fata să se întâlnească cu Sfânta Duminică, după ce se rătăcește?
+  POZITIV [sto_000004] Fata babei şi fata moşneagului
+      Titlu: Fata babei şi fata moşneagului Autor: Ion Creangă Text: Apoi îşi spălă frumuşel mâinile de lut şi porni iarăşi la drum. Şi mergând ea acum şi zi şi noapte, nu ştiu ce făcu, că se rătăci; cu toate aceste, nu-şi pie
+  NEGATIV sim=0.684 [sto_000008] Fata babei şi fata moşneagului
+      Titlu: Fata babei şi fata moşneagului Autor: Ion Creangă Text: Şi mergând ea tot înainte, a ajuns apoi şi ea la Sfânta Duminică; dar şi aici s-a purtat tot hursuz, cu obrăznicie şi prosteşte. În loc să facă bucatele bune
+  NEGATIV sim=0.603 [sto_000990] La crucea din sat
+      Titlu: La crucea din sat Autor: Ioan Slavici Text: Noroc c-a strigat atâta de încet, încât abia c-auzea ea însăși. Dar a doua oară nu strigă, ci stete puțin locului, apoi merse, stând la fiecare pas, spre crucea de piatr
+  NEGATIV sim=0.601 [sto_001302] Cele douăsprezece fete de împărat şi palatul cel fermecat
+      Titlu: Cele douăsprezece fete de împărat şi palatul cel fermecat Autor: Petre Ispirescu Text: După ce se sculară de la masă, prinseră a se întoarce acasă. Se întoarseră iarăşi pe unde au fost venit. Băiatul se ţinea după
+
+ÎNTREBARE: Cum se descrie aspectul fizic al călugărașului care a ajuns la domnie?
+  POZITIV [sto_000536] Fata moşului
+      Titlu: Fata moşului Autor: Barbu Ştefănescu Delavrancea Text: Călugăraşul deschise gura şi zise: – Din pulpă născută, pe claie-aruncată, de vultur răpită, de baba robită, la domnie-ajunsă, de ţigancă tunsă, călugăraş mă 
+  NEGATIV sim=0.671 [sto_001438] Hoţu împărat
+      Titlu: Hoţu împărat Autor: Petre Ispirescu Text: – Ba că tu ai fost cel dintâi care ai băut. Toate erau cum erau. Dară cum şi când s-au călugărit ei? Şi cum să se înfăţişeze ei la împăratul? N-avu încotro. Aşa se duseră.
+  NEGATIV sim=0.651 [sto_011768] Alexandru Lăpușneanul
+      Titlu: Alexandru Lăpușneanul Autor: Costache Negruzzi Text: Lăpușneanul se trezise din letargia sa. Deschizînd ochii, văzu doi călugări stînd unul la cap și altul la picioarele sale, neclintiți ca două statuie de bronz; 
+  NEGATIV sim=0.649 [sto_001443] Hoţu împărat
+      Titlu: Hoţu împărat Autor: Petre Ispirescu Text: Împăratul crezu şi-i dete voie. El se întoarse, cu mai mulţi oameni însăxănaţi cu bucăţelele foişorului său. Şi acolo de faţă cu toţii, aşeză fiecare lemnişor la îmbucătur
+
+ÎNTREBARE: Cum a reacționat căpitanul haiducilor după ce a citit scrisoarea primită?
+  POZITIV [sto_001357] George cel viteaz
+      Titlu: George cel viteaz Autor: Petre Ispirescu Text: Şi scrise carte. Iară dacă văzu că oştenii lui se cam codesc, primi cererea băietului cu care ucenicise el, şi-l trimise pe dânsul. Acesta dacă plecă, ajungând în cod
+  NEGATIV sim=0.656 [sto_001360] George cel viteaz
+      Titlu: George cel viteaz Autor: Petre Ispirescu Text: La citirea acestei scrisori, căpitanul rămase ca lovit de trăsnet. Şi neavând încotro, scoase toate avuţiile ce adunase de când tâlhărea şi le făcu douăsprezece părţi
+  NEGATIV sim=0.617 [sto_005552] Prizonierul
+      Titlu: Prizonierul Autor: Emil Gârleanu Text: Auzi?… Nu-nțelegi ce-ți spui?… Ei, să știi că nu e voie. Căpitanul se uită cu ochii mari la el, cu un zâmbet de dispreț și mânie, de care buza de jos îi tremura ușor. Mănciuc
+  NEGATIV sim=0.614 [sto_011498] În lumea Mediteranei/Răsărit de soare
+      Titlu: În lumea Mediteranei/Răsărit de soare Autor: Panait Istrati Text: Nu vine cu porția! Și privirea mută a marinarului părea să adauge: „Ești plictisit, domnul meu? Dar eu?” Într-adevăr, dar el? El care era plin de p
+
+ÎNTREBARE: Unde se aflau palaturile descrise ca fiind mai strălucitoare decât cele ale împăratului?
+  POZITIV [sto_001299] Cele douăsprezece fete de împărat şi palatul cel fermecat
+      Titlu: Cele douăsprezece fete de împărat şi palatul cel fermecat Autor: Petre Ispirescu Text: Intrând, băiatul călcă pe rochia fetei celei mici. Aceasta, întorcându-se repede, nu văzu pe nimeni; şi, chemându-şi surorile,
+  NEGATIV sim=0.644 [sto_008404] Opera lui del Chiaro
+      Titlu: Opera lui del Chiaro Autor: Nicolae Iorga Text: Și în afară de aceasta era, pe vremea Brâncoveanului, un chioșc sau foișor încunjurat cu cele mai frumoase straturi de flori, unde domnul se odihnea și obișnuia uneo
+  NEGATIV sim=0.635 [sto_008020] Călători în epoca de critică
+      Titlu: Călători în epoca de critică Autor: Nicolae Iorga Text: La București îi atrag privirile „Podul”, Cișmegiul, birjarii „lipoveni”, halele, făcute după cele centrale din Paris de un francez – și viața scumpă. Între c
+  NEGATIV sim=0.634 [sto_008493] Informatori catolici înainte de domnia Brâncoveanului
+      Titlu: Informatori catolici înainte de domnia Brâncoveanului Autor: Nicolae Iorga Text: Mai mult se spune de Brâncoveni, sat mare, cu un palat, o biserică foarte frumoasă, aducîndu-se apa pe țevi pentru călugării de acol
+
+ÎNTREBARE: Ce fel de lese producea popa în Sărăceni și cum erau acestea apreciate de Cozonac?
+  POZITIV [sto_000779] Popa Tanda
+      Titlu: Popa Tanda Autor: Ioan Slavici Text: Multă vreme nu trecu până ce lesele și fură gata. De minune nu era lucrul: erau însă cele mai bune lese în Sărăceni, bune, încât Cozonac nu se putu răbda să nu-și zică: "Popa e
+  NEGATIV sim=0.631 [sto_008189] Un naturalist german prin Bucovina, Ardeal si Moldova la sfîrșitul secolului al XVIII-lea
+      Titlu: Un naturalist german prin Bucovina, Ardeal si Moldova la sfîrșitul secolului al XVIII-lea Autor: Nicolae Iorga Text: Nu lipsește însă, alături de reproducerea unui firman din 16 octombre 1783 pentru sudiți, oareca
+  NEGATIV sim=0.624 [sto_008938] Basarabia sub Ștefan cel Mare, Urmașii săi până la sfârșitul veacului al XVI-lea
+      Titlu: Basarabia sub Ștefan cel Mare, Urmașii săi până la sfârșitul veacului al XVI-lea Autor: Nicolae Iorga Text: • Cu toate aceste evenimente, regiunea basarabeană își păstra prosperitatea pe care și-o datora numai reg
+  NEGATIV sim=0.621 [sto_008927] Basarabia sub Ștefan cel Mare, Urmașii săi până la sfârșitul veacului al XVI-lea
+      Titlu: Basarabia sub Ștefan cel Mare, Urmașii săi până la sfârșitul veacului al XVI-lea Autor: Nicolae Iorga Text: Se găseau de asemenea pescării foarte importante chiar și pe Nistru, și documente moldovenești din a doua
+
+ÎNTREBARE: Cum arată tânărul care se află în palat și cu ce se ocupă acesta?
+  POZITIV [sto_001454] Fata cu pieze rele
+      Titlu: Fata cu pieze rele Autor: Petre Ispirescu Text: Să se ducă ceva mai încolo, nu putea, căci arăpoaica adormise cu capul în poala ei. Se apucă şi ea de scuipă în laţele arăpoaicei. Arăpoaica, ca dracu, simţi şi o da
+  NEGATIV sim=0.618 [sto_009313] Osteneli de istoric
+      Titlu: Osteneli de istoric Autor: Nicolae Iorga Text: Intîia mea întîlnire cu viitorul rege Ferdinand mi-a rămas limpede în minte. […] Blond, foarte slab, cu figura mică, îngustă, săpată adînc pe tîmple și pe obraji, cu 
+  NEGATIV sim=0.611 [sto_006904] CHIPURI
+      Titlu: CHIPURI Autor: Alexandru Vlahuță Text: În ținuta nobilă de-o impunătoare simplitate a Suveranului ostaș, în adânca seriozitate a privirii lui, încărcată de griji, se vede încordarea unui suflet hotărât, făcut să p
+  NEGATIV sim=0.599 [sto_005478] Colonelul
+      Titlu: Colonelul Autor: Emil Gârleanu Text: Câteodată își arunca privirea spre portretul din cadrul aurit, din odaia lui de culcare. Se vedea acolo ofițer tânăr, sublocotenent, abia ieșit din școală; sta în picioare, cu 
+
+ÎNTREBARE: Ce sarcină i-a fost încredințată omului în a doua zi de către zmeu?
+  POZITIV [sto_000644] Spaima zmeilor
+      Titlu: Spaima zmeilor Autor: Ioan Slavici Text: Pe zfripţuroaică o trecură fiorii. Ziua a doua l-au trimis la pădure ca să aducă lemne, aşa, copaci întregi, smulşi din rădăcină şi duşi în spinare cu craci cu tot – cum se
+  NEGATIV sim=0.602 [sto_004405] Tovărășie nepotrivită
+      Titlu: Tovărășie nepotrivită Autor: Ioan Slavici Text: Nu se simțea deci nicăieri atât de bine ca în atelierul de croitorie și de aceea diminețile la ora opt îl găseai totdeauna la locul lui. Stătea până la amiazăzi, apo
+  NEGATIV sim=0.574 [sto_012435] Greva a reușit!
+      Titlu: Greva a reușit! Autor: Anton Bacalbașa Text: De unde munceau l4 ore pe zi, vor munci numai 11; de unde lucrau duminică pînă la amiază, vor merge acum numai o oră la atelier. Și un fapt și mai îmbucurător: s-a stab
+  NEGATIV sim=0.573 [sto_000059] Povestea lui Stan-Păţitul
+      Titlu: Povestea lui Stan-Păţitul Autor: Ion Creangă Text: Numai, dă! ce să facă bietul om? Cum era să se întindă mai mult, că de-abia acum se prinsese şi el cu mâinile de vatră; şi câte a tras până s-a văzut la casa lui,
+
+ÎNTREBARE: Ce temere exprimă Nichifor în legătură cu continuarea călătoriei?
+  POZITIV [sto_000244] Moş Nichifor Coţcariul
+      Titlu: Moş Nichifor Coţcariul Autor: Ion Creangă Text: – D’apoi eu mă grăbesc să ajung la Oşlobeni. D-ta poţi să mâi astă-noapte şi în pădure; nu cred că-i muri de urât! – Mă mir că nu ţi-e oarecum, să-ţi fie, zise Nichi
+  NEGATIV sim=0.584 [sto_004615] Păduchii
+      Titlu: Păduchii Autor: Liviu Rebreanu Text: Nici nu voia să vază. Acuma parcă-i era frică să nu dea cu ochii de ceva ca că-i tremure iarăși inima. Stătu strâns în fundul birjei, cu ochii închiși, numărând clipele, căutân
+  NEGATIV sim=0.564 [sto_011397] Între un prieten și o tutungerie
+      Titlu: Între un prieten și o tutungerie Autor: Panait Istrati Text: De-aici, această existență mediocră, însă temeinic asigurată fiecăruia, de la râma omenească până la cercetătorul în constelații. Apropierea de Alexandr
+  NEGATIV sim=0.563 [sto_007290] Elisabeta îngrășată
+      Titlu: Elisabeta îngrășată Autor: Mihail Sebastian Text: Și nici un îl interesa. Dar în momentul acela, fiindcă reclama prosopului Iliescu-Bardă îi schimba deodată șirul gândurilor și fiindcă perspectiva celor 12 ceasuri
+
+ÎNTREBARE: Ce metode au încercat baba și unchiașul pentru a avea un copil?
+  POZITIV [sto_001459] Voinicul cel cu cartea în mână născut
+      Titlu: Voinicul cel cu cartea în mână născut Autor: Petre Ispirescu Text: A fost odată o babă şi un unchiaş. Ei până la vreme de bătrâneţe nu avură nici un copil. Ce nu făcură? Ce nu dreseră? Şi ca să aibă şi ei măcar o 
+  NEGATIV sim=0.557 [sto_002940] Cele două gângănii
+      Titlu: Cele două gângănii Autor: Emilia Plugaru Text: Băiatul s-a gândit că acela nu e tatăl său. Sau poate că e tatăl cel adevărat, însă atunci când intră în casă – cineva îl preface într-o fiinţă menită să-l chinuiască
+  NEGATIV sim=0.545 [sto_008893] Cei dintîi călători în veacul al XIV-lea
+      Titlu: Cei dintîi călători în veacul al XIV-lea Autor: Nicolae Iorga Text: Aceasta în teorie. În practică însă se putea ca vreunul, oricare ar fi fost descendența lui, să fi avut mai mulți copii, așa încît avea o parte m
+  NEGATIV sim=0.501 [sto_006288] Mara/Norocul casei
+      Titlu: Mara/Norocul casei Autor: Ioan Slavici Text: Ce putea să vadă? Un copil abia născut nu e, la urma urmelor, decât o bucățică de carne fără ochi, care se mișcă în toate amănuntele ei. El însă nu mai văzuse în viața 
+
+==============================================================================
+SUMMARIZATION   (6080 triplete în total)
+==============================================================================
+
+ÎNTREBARE: Care este județul cu cele mai multe cazuri noi de coronavirus raportate în ultimele 24 de ore?
+  POZITIV [sum_000842] Coronavirus în România, 24 septembrie. Care sunt județele în care s-au înregistrat cele mai multe cazuri
+      Titlu: Coronavirus în România, 24 septembrie. Care sunt județele în care s-au înregistrat cele mai multe cazuri Text: Până astăzi, 24 septembrie, pe teritoriul României, au fost confirmate 118.054 cazuri de persoane infe
+  NEGATIV sim=0.920 [sum_052330] Apar noi județe „roșii”. Unde s-au raportat cele mai multe cazuri de coronavirus, în ultimele 24 ore
+      Titlu: Apar noi județe „roșii”. Unde s-au raportat cele mai multe cazuri de coronavirus, în ultimele 24 ore Text: În ultimele 24 de ore, Grupul de Comunicare Strategică a raportat 460 de noi cazuri de coronavirus, bilanț
+  NEGATIV sim=0.862 [sum_048301] Alertă în județul Hunedoara din cauza COVID-19. Zece localități, aproape de plasarea în carantină
+      Titlu: Alertă în județul Hunedoara din cauza COVID-19. Zece localități, aproape de plasarea în carantină Text: În județ s-au înregistrat în ultimele 24 de ore 51 de cazuri de persoane infectate cu noul coronavirus. Potri
+  NEGATIV sim=0.853 [sum_023027] Coronavirus 29 iulie. Care este singurul judeţ din ţară cu peste 100 de cazuri noi de coronavirus
+      Titlu: Coronavirus 29 iulie. Care este singurul judeţ din ţară cu peste 100 de cazuri noi de coronavirus Text: Dacă în urmă cu două zile mai multe judeţe din ţară, dar şi Capitala, raportau peste 100 de noi cazuri de îmb
+
+ÎNTREBARE: Care este numărul de pacienți confirmați cu COVID-19 la SUUB?
+  POZITIV [sum_001378] 17 cadre medicale și 10 pacienți de la Spitalul Universitar din București, confirmați cu COVID-19
+      Titlu: 17 cadre medicale și 10 pacienți de la Spitalul Universitar din București, confirmați cu COVID-19 Text: De la nivelul SUUB s-au prelevat în total aproximativ 500 de probe biologice, iar pentru 20% dintre acestea s
+  NEGATIV sim=0.814 [sum_013021] Focar de COVID-19 la Brăila. Mai mulți angajați ai Spitalului Județean au fost confirmați pozitiv
+      Titlu: Focar de COVID-19 la Brăila. Mai mulți angajați ai Spitalului Județean au fost confirmați pozitiv Text: Prefectura Brăila arată într-un comunicat de presă că cele 8 noi cazuri de COVID-19 sunt: doi medici cardiolo
+  NEGATIV sim=0.805 [sum_019535] Studiu: 76% dintre pacienții spitalizați cu COVID-19 au simptome chiar și după șase luni
+      Titlu: Studiu: 76% dintre pacienții spitalizați cu COVID-19 au simptome chiar și după șase luni Text: Un nou studiu făcut de cercetătorii din China arată că mai mult de trei sferturi dintre pacienții cu COVID-19 care au 
+  NEGATIV sim=0.785 [sum_035463] Focar de infecție uriaș în Dâmbovița. 106 persoane diagnosticate cu COVID-19 la un centru de recuperare din Moreni
+      Titlu: Focar de infecție uriaș în Dâmbovița. 106 persoane diagnosticate cu COVID-19 la un centru de recuperare din Moreni Text: Conform ultimelor rezultate, primite joi, s-a confirmat infectarea pentru încă 55 de persoan
+
+ÎNTREBARE: Ce instituție a emis avertismentul privind informațiile false despre vaccinare?
+  POZITIV [sum_000728] CNCAV avertizează asupra informațiilor false împotriva vaccinării din Germania, Franța și Belgia
+      Titlu: CNCAV avertizează asupra informațiilor false împotriva vaccinării din Germania, Franța și Belgia Text: Comitetul Național de Coordonare a Activităților privind Vaccinarea împotriva COVID-19 (CNCAV) atrage atenția 
+  NEGATIV sim=0.782 [sum_054722] Cine sunt cei care au lansat campania de dezinformare despre vaccinuri
+      Titlu: Cine sunt cei care au lansat campania de dezinformare despre vaccinuri Text: "Situația pliantelor anti-vaccinare pe care a fost FALS trecută sigla Organizației Mondiale a Sănătății, a UNICEF și a Ministerului Sănă
+  NEGATIV sim=0.741 [sum_030264] Mai mulți medici au fost prinși în timp ce luau mită pentru un certificat fals de vaccinare
+      Titlu: Mai mulți medici au fost prinși în timp ce luau mită pentru un certificat fals de vaccinare Text: Luni au fost efectuate 6 percheziții, dintre care 4 la domiciliile unor persoane, iar alte 2 la medicul de familie 
+  NEGATIV sim=0.738 [sum_058053] Fake newsul, o tentativă de boicot a campaniei de vaccinare. Cum se poate verifica o știre despre vaccinare
+      Titlu: Fake newsul, o tentativă de boicot a campaniei de vaccinare. Cum se poate verifica o știre despre vaccinare Text: Comitetul Național de Coordonare a Activităților privind Vaccinarea împotriva Covid-19 (CNCAV) trag
+
+ÎNTREBARE: Ce a susținut Rusia în regiunea Donbas începând cu anul 2014?
+  POZITIV [sum_000348] Jens Stoltenberg: Rușii nu se retrag, se regrupează pentru alte atacuri
+      Titlu: Jens Stoltenberg: Rușii nu se retrag, se regrupează pentru alte atacuri Text: Potrivit Reuters, Stoltenberg a mai spus că alianța nu a fost încă convinsă că Rusia a negociat cu bună-credință la discuțiile de pace 
+  NEGATIV sim=0.756 [sum_053734] Rusia obține câștiguri minime în Donbas. Ucrainenii au lovit un pod important din Herson folosit de ruși pentru aprovizionare
+      Titlu: Rusia obține câștiguri minime în Donbas. Ucrainenii au lovit un pod important din Herson folosit de ruși pentru aprovizionare Text: Rusia continuă să obțină câștiguri minime în ofensiva sa din Donbas, în timp ce f
+  NEGATIV sim=0.749 [sum_004169] Volodimir Zelenski: Rusia a început „Bătălia din Donbas”
+      Titlu: Volodimir Zelenski: Rusia a început „Bătălia din Donbas” Text: Preşedintele ucrainean Volodimir Zelenski a declarat că Rusia a început luni "Bătălia din Donbas” în estul ţării şi că o "foarte mare parte din întrea
+  NEGATIV sim=0.748 [sum_025897] Zelenski: Rusia vrea să „distrugă” toată regiunea Donbasului
+      Titlu: Zelenski: Rusia vrea să „distrugă” toată regiunea Donbasului Text: În timp ce rachetele rusești cădeau luni dimineața deasupra Liovului și bombardamentele din Harkov continuau, Moscova căuta să obțină victoria mul
+
+ÎNTREBARE: Cum este justificată întreruperea inițială a ședințelor comisiilor de către parlamentarii AUR?
+  POZITIV [sum_000080] Comisiile Senatului au aprobat introducerea certificatului verde pentru angajații de la stat
+      Titlu: Comisiile Senatului au aprobat introducerea certificatului verde pentru angajații de la stat Text: Şedinţele celor două comisii, care s-au desfăşurat iniţial separat, au fost întrerupte de parlamentari de la AUR. 
+  NEGATIV sim=0.734 [sum_019501] Guvernul Orban rezistă. Eşec la moţiunea de cenzură din cauza absenteismului
+      Titlu: Guvernul Orban rezistă. Eşec la moţiunea de cenzură din cauza absenteismului Text: UPDATE: Şedinţa Parlamentului se suspendă din lipsă de cvorum: au fost număraţi 226 de senatori şi deputaţi, sub numărul necesar d
+  NEGATIV sim=0.727 [sum_008611] Sancțiuni propuse pentru deputații agresivi, după cazul George Simion: indemnizație tăiată la jumătate, timp de vorbire de 10 secunde
+      Titlu: Sancțiuni propuse pentru deputații agresivi, după cazul George Simion: indemnizație tăiată la jumătate, timp de vorbire de 10 secunde Text: De asemenea, parlamentarii nu vor mai putea înregistra sau transmite în d
+  NEGATIV sim=0.704 [sum_010745] Desființarea Secției speciale pentru magistrați a fost adoptată tacit de Camera Deputaților
+      Titlu: Desființarea Secției speciale pentru magistrați a fost adoptată tacit de Camera Deputaților Text: Proiectul inițiat de deputații și senatorii USR a trecut tacit de Camera Deputaților, prin depășirea termenului pen
+
+ÎNTREBARE: Ce substanță toxică a provocat decesul lui Adrian Murphy?
+  POZITIV [sum_000315] O româncă stabilită în Anglia, condamnată pe viață pentru uciderea unui sportiv celebru
+      Titlu: O româncă stabilită în Anglia, condamnată pe viață pentru uciderea unui sportiv celebru Text: Românca Diana Cristea (19 ani/foto, dreapta) și partenerul său Joel Orsei (25 de ani) au fost găsiți vinovați pentru uc
+  NEGATIV sim=0.713 [sum_010658] Surse: A fost stabilită cauza decesului omului de afaceri Ioan Crişan din Arad
+      Titlu: Surse: A fost stabilită cauza decesului omului de afaceri Ioan Crişan din Arad Text: Omul de afaceri Ioan Crișan a murit din cauza exploziei și a inhalării de gaz, au declarat surse din anchetă, la finalizarea nec
+  NEGATIV sim=0.619 [sum_032095] Cercetări preliminare ale Parchetului: moartea învăţătoarei din Tinca, după intoxicarea cu o substanţă folosită la deratizare
+      Titlu: Cercetări preliminare ale Parchetului: moartea învăţătoarei din Tinca, după intoxicarea cu o substanţă folosită la deratizare Text: "Cercetările preliminare relevă faptul că decesul (învăţătoarei Alina Ştiube - n.
+  NEGATIV sim=0.608 [sum_050069] A murit bărbatul care a ajuns la terapie intensivă după ce a mâncat o conservă de pește făcută în casă
+      Titlu: A murit bărbatul care a ajuns la terapie intensivă după ce a mâncat o conservă de pește făcută în casă Text: Bărbatul de 68 de ani era în comă, internat în secția de Anestezie Terapie Intensivă a Spitalului de Bol
+
+ÎNTREBARE: Ce a transmis Vasile Bănescu, purtătorul de cuvânt al Patriarhiei, referitor la gestionarea pandemiei?
+  POZITIV [sum_000372] Purtătorul de cuvânt al Patriarhiei: Datoria fiecăruia dintre noi este să asculte exclusiv de sfaturile medicilor
+      Titlu: Purtătorul de cuvânt al Patriarhiei: Datoria fiecăruia dintre noi este să asculte exclusiv de sfaturile medicilor Text: "Am văzut cu toţii cumplitele imagini de la morgile unor spitale din Bucureşti. Este copleşit
+  NEGATIV sim=0.694 [sum_019199] Gândurile lui Cristoiu, de la ora 20:00, la Aleph News
+      Titlu: Gândurile lui Cristoiu, de la ora 20:00, la Aleph News Text: Astăzi, de la ora 20:00, publicistul Ion Cristoiu și moderatoarea Monica Mihai discută despre cheltuielile nesăbuite din pandemie, pornind de la scandal
+  NEGATIV sim=0.689 [sum_014564] Vlad Voiculescu, ironizat de Alexandru Rafila: „Dacă luăm o foaie A4, nu știu dacă reușim să umplem o treime cu ce a făcut legat de pandemie“
+      Titlu: Vlad Voiculescu, ironizat de Alexandru Rafila: „Dacă luăm o foaie A4, nu știu dacă reușim să umplem o treime cu ce a făcut legat de pandemie“ Text: Florin Cîțu i-a cerut lui Vlad Voiculescu să prezinte, până săptă
+  NEGATIV sim=0.686 [sum_025428] Ion Cristoiu: „Un nou moment vesel din aplicarea noilor măsuri luate de Guvern”
+      Titlu: Ion Cristoiu: „Un nou moment vesel din aplicarea noilor măsuri luate de Guvern” Text: Publicistul Ion Cristoiu afirmă că vinovat de eşecul autorităţilor de a transmite românilor un mesaj clar privind pericolul pan
+
+ÎNTREBARE: Ce instituție a criticat Cristian Pîrvulescu, conform declarațiilor sale la Digi24?
+  POZITIV [sum_000286] Cristian Pîrvulescu, despre discursul Vioricăi Dăncilă: Și expresia „venin de viperă” era scrisă. Ați auzit-o pe Theresa May vorbind...
+      Titlu: Cristian Pîrvulescu, despre discursul Vioricăi Dăncilă: Și expresia „venin de viperă” era scrisă. Ați auzit-o pe Theresa May vorbind... Text: "Ceea ce am văzut azi a fost o lipsă de respect față de această institu
+  NEGATIV sim=0.674 [sum_031347] Dacian Cioloş l-a criticat pe Florin Cîţu, după demiterea lui Vlad Voiculescu: „Absolut inacceptabil”
+      Titlu: Dacian Cioloş l-a criticat pe Florin Cîţu, după demiterea lui Vlad Voiculescu: „Absolut inacceptabil” Text: Modul în care a procedat Florin Cîțu, înaintând președintelui Klaus Iohannis cererea de demitere a lui Vl
+  NEGATIV sim=0.643 [sum_009746] Deputatul „Mitralieră”, cercetat penal de DNA.  Cătălin Rădulescu a obținut în fals titlul de „Luptător pentru Victoria Revoluției”
+      Titlu: Deputatul „Mitralieră”, cercetat penal de DNA. Cătălin Rădulescu a obținut în fals titlul de „Luptător pentru Victoria Revoluției” Text: Deputatul PSD Cătălin Rădulescu este cercetat penal de DNA pentru modul cum 
+  NEGATIV sim=0.632 [sum_028991] Dăncilă îl acuză pe Ciolacu că a provocat demiterea guvernului PSD: M-a trădat la moțiune. El a dirijat planul
+      Titlu: Dăncilă îl acuză pe Ciolacu că a provocat demiterea guvernului PSD: M-a trădat la moțiune. El a dirijat planul Text: "Marcel Ciolacu, Paul Stănescu, Oprișan, Dragoș Benea au avut un plan de a prelua partidul. Mi-a
+
+ÎNTREBARE: În ce oraș a urmat Stelian Olariu cursuri de vioară înainte de a veni la București?
+  POZITIV [sum_000057] Dirijorul Stelian Olariu a murit. Avea o activitate de 55 de ani la ONB
+      Titlu: Dirijorul Stelian Olariu a murit. Avea o activitate de 55 de ani la ONB Text: "Opera Naţională Bucureşti anunţă cu tristeţe şi profund regret că maestrul Stelian Olariu a încetat din viaţă şi transmite condoleanţe
+  NEGATIV sim=0.651 [sum_048584] Tinerii pianiști români fac performanță pe scena Festivalului George Enescu
+      Titlu: Tinerii pianiști români fac performanță pe scena Festivalului George Enescu Text: Urmașii lui Enescu se întrec online în perioada asta. E și o parte bună, a fost public record anul acesta din fața ecranelor la Fes
+  NEGATIV sim=0.621 [sum_038366] Clădiri istorice din București, lăsate ani de zile în paragină, vor fi consolidate
+      Titlu: Clădiri istorice din București, lăsate ani de zile în paragină, vor fi consolidate Text: Acum mai bine de 140 de ani, la hanul Solacolu pornea răscoala ce a dus la obţinerea autonomiei Bugariei faţă de Imperiul Ot
+  NEGATIV sim=0.606 [sum_024251] Tramvaie de epocă pe străzile din oraș, cu ocazia Zilelor Bucureștiului
+      Titlu: Tramvaie de epocă pe străzile din oraș, cu ocazia Zilelor Bucureștiului Text: Bătrânele tramvaie fabricate din ’56 până în ’76 au ieșit la paradă, azi, prin București. Nu sunt ele primenite cu hainele cele mai bun
+
+ÎNTREBARE: Ce rol a avut Iulian Iancu în cadrul World Energy Council?
+  POZITIV [sum_000417] Iulian Iancu, la Interviurile lui Cristoiu: PNRR este șansa României, proiectul de țară mult așteptat după aderare. Ni s-a pus pe masă gata făcut
+      Titlu: Iulian Iancu, la Interviurile lui Cristoiu: PNRR este șansa României, proiectul de țară mult așteptat după aderare. Ni s-a pus pe masă gata făcut Text: Iulian Iancu, fost parlamentar PSD și președintele World Ener
+  NEGATIV sim=0.630 [sum_000200] Alexandru Stănescu, propus la ANRE. Ministrul Virgil Popescu: „Nu trebuie să fii energetician ca să iei decizii despre energie”
+      Titlu: Alexandru Stănescu, propus la ANRE. Ministrul Virgil Popescu: „Nu trebuie să fii energetician ca să iei decizii despre energie” Text: Partidul Social Democrat îl propune pe fostul parlamentar Alexandru Stănescu în
+  NEGATIV sim=0.618 [sum_013340] Virgil Popescu: Lucrăm cu partenerii americani pentru a întări securitatea energetică a ţării
+      Titlu: Virgil Popescu: Lucrăm cu partenerii americani pentru a întări securitatea energetică a ţării Text: "Astăzi mă aflu la Praga unde am avut o întâlnire de lucru cu David M. Turk, secretar adjunct în Departamentul de
+  NEGATIV sim=0.593 [sum_039129] Liderii mondiali din domeniul energiei și al climei s-au întâlnit la Forumul energetic de la Sydney
+      Titlu: Liderii mondiali din domeniul energiei și al climei s-au întâlnit la Forumul energetic de la Sydney Text: Liderii mondiali din domeniul energiei și al climei se întâlnesc în această săptămână la Forumul energetic 
+
+ÎNTREBARE: Cum se compară stratul de pământ în care a fost găsit fragmentul facial cu cel al mandibulei din 2007?
+  POZITIV [sum_000437] O fosilă umană, posibil cea mai veche din Europa, a fost descoperită în Spania
+      Titlu: O fosilă umană, posibil cea mai veche din Europa, a fost descoperită în Spania Text: Paleontologi spanioli au anunţat că au descoperit o fosilă a unui hominid, (familie de primate ce cuprinde omul și precursorii s
+  NEGATIV sim=0.608 [sum_061803] Posibilă epavă antică descoperită în urma unei anchete DNA, la Mamaia. Procurorii verificau un proiect de 750 milioane €
+      Titlu: Posibilă epavă antică descoperită în urma unei anchete DNA, la Mamaia. Procurorii verificau un proiect de 750 milioane € Text: Fragmentele lemnoase descoperite sunt dispersate pe o suprafață de aproximativ 20 de m
+  NEGATIV sim=0.606 [sum_021223] O nouă parte a corpului, descoperită de un grup de oameni de știință
+      Titlu: O nouă parte a corpului, descoperită de un grup de oameni de știință Text: O nouă parte a corpului a fost descoperită de un grup de oameni de știință. Este vorba despre un mușchi care se află în zona maxilarului, 
+  NEGATIV sim=0.598 [sum_053514] Descoperire crucială despre o specie umană misterioasă care a trăit în urmă cu 160.000 de ani. Cum arătau denisovanii
+      Titlu: Descoperire crucială despre o specie umană misterioasă care a trăit în urmă cu 160.000 de ani. Cum arătau denisovanii Text: O mandibulă găsită într-o peşteră din Platoul Tibet din China oferă informaţii surprinzăt
+
+ÎNTREBARE: În ce lună a vizitat Merve Taskin Muzeul Sexului din Amsterdam?
+  POZITIV [sum_001085] FOTO. O tânără riscă până la 3 ani de închisoare după ce a postat imagini „obscene” din Muzeul Sexului
+      Titlu: FOTO. O tânără riscă până la 3 ani de închisoare după ce a postat imagini „obscene” din Muzeul Sexului Text: O tânără influenceriță din Turcia susține că a fost dată în judecată, după ce a postat pe internet "în g
+  NEGATIV sim=0.574 [sum_049624] De ce au deschis londonezii primul Muzeu al Vaginului din lume
+      Titlu: De ce au deschis londonezii primul Muzeu al Vaginului din lume Text: Schechter lucra în calitate de comunicator științific, realizând videoclipuri pe YouTube înainte de a lansa acest proiect unic, Muzeul Vaginului
+  NEGATIV sim=0.519 [sum_001578] Prinţul Charles, în Centrul Vechi al Bucureştiului
+      Titlu: Prinţul Charles, în Centrul Vechi al Bucureştiului Text: 2017.03.31 Charles Caramitru TNB-5636-inquam george calin Deschide galeria foto FOTO: Inquam Photos / Octav Ganea / George CălinPrinţul de Wales a mers, vin
+  NEGATIV sim=0.518 [sum_060318] „Esența unui tablou”: Muzeul Prado din Madrid îți prezintă tabloul care emană mirosuri
+      Titlu: „Esența unui tablou”: Muzeul Prado din Madrid îți prezintă tabloul care emană mirosuri Text: De acum poți să mergi la muzeu și să te încânte…mirosul. La Muzeul "Prado” din Madrid a fost lansată o expoziție special

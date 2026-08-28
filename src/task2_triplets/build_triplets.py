@@ -84,11 +84,16 @@ def main(argv=None) -> None:
                         help="below this a negative is too easy to be useful")
     parser.add_argument("--max-neg-similarity", type=float, default=0.92,
                         help="above this it is probably a paraphrase of the positive")
-    parser.add_argument("--same-type-only", action="store_true", default=True,
-                        help="mine negatives from the positive's own document type")
+    parser.add_argument("--same-type-only", action=argparse.BooleanOptionalAction,
+                        default=True,
+                        help="mine negatives from the positive's own document type; "
+                             "--no-same-type-only allows a recipe to be a negative "
+                             "for a news query, which is usually too easy")
     parser.add_argument("--max-queries", type=int, default=0,
                         help="cap the number of queries processed (0 = all)")
     parser.add_argument("--max-doc-chars", type=int, default=2000)
+    parser.add_argument("--embedding-cache", default=None,
+                        help="corpus embeddings cache (default: <output>.docvecs.npz)")
     args = parser.parse_args(argv)
 
     import faiss
@@ -124,12 +129,41 @@ def main(argv=None) -> None:
     print(f"▸ {len(by_fingerprint)} distinct documents, {duplicated} in duplicate groups")
 
     model = SentenceTransformer(args.model)
-    print(f"▸ Embedding corpus with {args.model} …")
-    doc_vectors = model.encode(
-        [document_text(d, t, args.max_doc_chars) for d, t in zip(docs, types)],
-        batch_size=args.batch_size, show_progress_bar=True,
-        normalize_embeddings=True, convert_to_numpy=True,
-    ).astype("float32")
+    # MiniLM truncates at 128 tokens, so --max-doc-chars beyond ~500 changes
+    # nothing: only the opening of each document is ever encoded. Print it so
+    # the limit is visible in the log rather than inferred from bad recall.
+    seq_limit = getattr(model, "max_seq_length", None)
+    print(f"▸ Encoder {args.model}: max {seq_limit} tokens per text "
+          f"(documents are cut at {args.max_doc_chars} characters first)")
+
+    # Embedding 117k documents takes ~30 min on 16 CPU cores, which is long
+    # enough that losing it to a wall-clock limit hurts. Cache it next to the
+    # output, keyed by corpus size and model so a stale cache cannot be reused.
+    cache_path = args.embedding_cache or (os.path.splitext(args.output)[0] + ".docvecs.npz")
+    doc_vectors = None
+    if os.path.exists(cache_path):
+        cached = np.load(cache_path, allow_pickle=False)
+        same_corpus = (
+            int(cached["count"]) == len(ids)
+            and str(cached["model"]) == args.model
+        )
+        if same_corpus:
+            doc_vectors = cached["vectors"]
+            print(f"▸ Reusing cached corpus embeddings from {cache_path}")
+        else:
+            print(f"▸ Ignoring {cache_path}: built for a different corpus or model")
+
+    if doc_vectors is None:
+        print(f"▸ Embedding corpus with {args.model} …")
+        doc_vectors = model.encode(
+            [document_text(d, t, args.max_doc_chars) for d, t in zip(docs, types)],
+            batch_size=args.batch_size, show_progress_bar=True,
+            normalize_embeddings=True, convert_to_numpy=True,
+        ).astype("float32")
+        os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
+        np.savez(cache_path, vectors=doc_vectors,
+                 count=np.array(len(ids)), model=np.array(args.model))
+        print(f"▸ Cached corpus embeddings to {cache_path}")
 
     index = faiss.IndexFlatIP(doc_vectors.shape[1])
     index.add(doc_vectors)
@@ -172,14 +206,19 @@ def main(argv=None) -> None:
 
             positive_type = types[positive_i]
             negatives = []
+            # Also deduplicate the negatives against each other: the retriever
+            # happily returns three re-publications of the same article, which
+            # fills all three slots with one text and teaches nothing extra.
+            used_groups = set()
             for score, j in zip(row_scores, row_hits):
-                if j == -1 or j in excluded:
+                if j == -1 or j in excluded or fingerprints[j] in used_groups:
                     continue
                 score = float(score)
                 if score > args.max_neg_similarity or score < args.min_neg_similarity:
                     continue
                 if args.same_type_only and types[j] != positive_type:
                     continue
+                used_groups.add(fingerprints[j])
                 negatives.append({"doc_id": ids[j], "similarity": round(score, 4)})
                 if len(negatives) >= args.negatives:
                     break
@@ -188,7 +227,12 @@ def main(argv=None) -> None:
                 skipped_few_negatives += 1
                 continue
 
-            where = [k for k, j in enumerate(row_hits) if j == positive_i]
+            # "Reachable" means any copy of the positive, not that exact row:
+            # a third of the corpus is duplicated, so the retriever routinely
+            # returns a re-publication of the positive instead of the positive
+            # itself, and comparing indices would score that as a miss.
+            positive_group = set(by_fingerprint[fingerprints[positive_i]])
+            where = [k for k, j in enumerate(row_hits) if j in positive_group]
             rank_of_positive.append(where[0] + 1 if where else 0)
 
             out.write(json.dumps({

@@ -26,7 +26,9 @@ src/
 │
 ├── task2_triplets/            # Triplet generation & filtering
 │   ├── __init__.py
-│   ├── triplet_generator.py   # Generate (query, positive, negative) triplets
+│   ├── build_triplets.py      # MAIN: mine hard negatives for the generated queries
+│   ├── inspect_triplets.py    # Summary + readable sample of the triplets
+│   ├── triplet_generator.py   # Older variant: positive guessed by a retriever
 │   ├── task2_triplets.py      # Task 2: Triplet creation
 │   └── task3_filter.py        # Task 3: Filter & validate triplets
 │
@@ -61,7 +63,8 @@ containers/                   # Apptainer image for GPU clusters
 scripts/
 ├── download_model.sh        # Pre-cache Gemma weights (login node)
 └── slurm/
-    └── generate_queries.sbatch  # 2h GPU job for query generation
+    ├── generate_queries.sbatch  # 2h GPU job for query generation
+    └── build_triplets.sbatch    # GPU job for hard-negative mining
 ```
 
 ## Key Scripts & Usage
@@ -138,12 +141,48 @@ news query twice; pass `--include-aggregates` or `--categories news` to read it.
 - Concept overlap: shared concepts across documents
 - Run manifest with throughput: `<output>.stats.json`
 
-### 3. Triplet Generation (NEXT PHASE)
+### 3. Triplet Generation (CURRENT PHASE) ✅
+
+Every query was generated *from* a document, so the positive is known by
+construction - retrieval is only used to mine hard negatives.
+
 ```bash
-python3 -m src.task2_triplets.triplet_generator
-python3 -m src.task2_triplets.task2_triplets
-python3 -m src.task2_triplets.task3_filter
+# On a GPU node: ~5 min cold for 70k queries against a 117k-document corpus,
+# ~1 min when the corpus embeddings are already cached
+sbatch --partition=dgxa100 scripts/slurm/build_triplets.sbatch
+
+# Or directly
+python3 -m src.task2_triplets.build_triplets \
+    --queries data/queries/queries_gemma3_27b.jsonl \
+    --output data/triplets/triplets_27b.jsonl
+
+# See what came out: distributions on stdout, sampled triplets in a text file
+python3 -m src.task2_triplets.inspect_triplets \
+    --input data/triplets/triplets_27b.jsonl \
+    --sample-out data/triplets/triplets_27b_readable.txt
 ```
+
+Two corpus properties drive the filtering:
+
+- **Duplicates.** ~33.5k of the 117k documents share their text with another
+  document (89.4k distinct). A duplicate of the positive answers the query, so
+  mining it as a negative teaches the opposite of what is intended; documents
+  are grouped by a hash of their normalised text and excluded together.
+- **Multi-positive queries.** Queries built with the v2-multi prompt carry
+  `similar_doc_ids`; those are additional positives and are excluded too.
+
+Negatives come from a similarity band - `--min-neg-similarity` (below it the
+negative is too easy to teach anything) to `--max-neg-similarity` (above it it
+is probably a paraphrase of the positive). `--same-type-only` (default) keeps
+negatives inside the positive's document type; `--no-same-type-only` allows a
+recipe to be a negative for a news query, which is nearly always trivial.
+
+The corpus embeddings are cached at `<output>.docvecs.npz`, keyed by corpus
+size and encoder, so re-running with a different similarity band only
+re-embeds the queries.
+
+The older `triplet_generator.py` / `task2_triplets.py` / `task3_filter.py`
+path picks the positive with a retriever instead and is kept for comparison.
 
 ### 4. Model Training
 ```bash
@@ -161,6 +200,9 @@ python3 -m src.evaluation.ir_pipeline
 
 - `data/queries/queries_gemma3_27b.jsonl` - Gemma 3 generated queries with quality scores
 - `data/queries/queries_gemma3_27b.jsonl.stats.json` - run manifest (config, throughput, per-type stats)
+- `data/triplets/triplets_27b.jsonl` - (query, positive, hard negatives) triplets
+- `data/triplets/triplets_27b.docvecs.npz` - cached corpus embeddings for the miner
+- `data/triplets/triplets_27b_readable.txt` - sampled triplets with titles and snippets
 - `data/categories/` - documents (news, stories, recipes, summarization)
 - `results/evaluation/` - Evaluation metrics
 - `checkpoints/` - Model checkpoints
