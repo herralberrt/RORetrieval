@@ -102,7 +102,54 @@ echo "=================================================================="
         --max-positive-rank "$MAX_POS_RANK" \
         --max-queries "$MAX_QUERIES"
 
+# ------------------------------------------------------------------ export
+# The training layout (alina0195/ro-msmarco-divided columns + query_source) and
+# the source plot, in the same job: they read the file that was just written, so
+# splitting them into a second submission only adds a queue wait and a chance to
+# forget. Set EXPORT=0 to skip.
+if [[ "${EXPORT:-1}" == "1" ]]; then
+    HF_DIR="${HF_DIR:-data/triplets/hf}"
+    HF_NAME="${HF_NAME:-$(basename "${TRIPLETS_OUTPUT%.jsonl}")}"
+    HF_OUT="$HF_DIR/${HF_NAME}_hf.jsonl"
+    mkdir -p "$HF_DIR"
+
+    echo
+    echo "▸ Exporting to $HF_OUT"
+    "$APPTAINER_BIN" exec \
+        --bind "$PROJ_ROOT":"$PROJ_ROOT" --pwd "$PROJ_ROOT" "$IMAGE" \
+        python3 -m src.task2_triplets.export_hf_dataset \
+            --input "$TRIPLETS_OUTPUT" \
+            --output "$HF_OUT" \
+            ${SPLIT:+--split}
+
+    # With --split the exporter writes <stem>_train/_eval/_test and no base
+    # file, so the plot has to be pointed at the parts, not at $HF_OUT.
+    PLOT_INPUTS=()
+    if [[ -n "${SPLIT:-}" ]]; then
+        for part in train eval test; do
+            [[ -f "${HF_OUT%.jsonl}_${part}.jsonl" ]] && \
+                PLOT_INPUTS+=(--input "${HF_OUT%.jsonl}_${part}.jsonl")
+        done
+    else
+        PLOT_INPUTS=(--input "$HF_OUT")
+    fi
+
+    echo
+    echo "▸ Plotting query_source"
+    "$APPTAINER_BIN" exec \
+        --bind "$PROJ_ROOT":"$PROJ_ROOT" --pwd "$PROJ_ROOT" "$IMAGE" \
+        python3 -m src.task2_triplets.plot_query_sources \
+            "${PLOT_INPUTS[@]}" \
+            --output "$HF_DIR/${HF_NAME}_query_sources.png"
+fi
+
 echo "=================================================================="
 echo " Done. Inspect the triplets with:"
 echo "   python3 -m src.task2_triplets.inspect_triplets --input $TRIPLETS_OUTPUT"
+echo
+echo " Then push (needs a token; --yes is required to actually upload):"
+echo "   HF_TOKEN=hf_... apptainer exec containers/roretrieval.sif \\"
+echo "     python3 -m src.task2_triplets.push_to_hf \\"
+echo "       --input ${HF_OUT:-data/triplets/hf/..._hf.jsonl} \\"
+echo "       --repo <user>/ro-retrieval-triplets --public --yes"
 echo "=================================================================="

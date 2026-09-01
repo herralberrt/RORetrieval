@@ -677,6 +677,12 @@ def main(argv=None) -> None:
                 ],
                 "type": record.get("type", ""),
                 "category": record.get("category", ""),
+                # Where the query ultimately comes from: the upstream dataset or
+                # outlet the positive was drawn from ("adevarul", "zf",
+                # "readerbench/ro-stories", "readerbench/ro-text-summarization
+                # (alephnews)"). Carried through so the exported training set can
+                # say what each example's provenance is.
+                "query_source": record.get("source", ""),
                 "duplicate_group": fingerprints[positive_i][:12],
                 "query_version": record.get("prompt_version", "v1"),
                 "generator": record.get("generator", ""),

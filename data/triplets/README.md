@@ -24,9 +24,9 @@ six guards keep documents that answer the query out of the negatives.
 
 > ⚠ **Every number below describes the run of 29 Aug 2026, which the review of
 > 30 Aug superseded.** The builder now takes negatives from a lower band and
-> reclassifies same-story candidates as positives (§10); the file, the counts
+> reclassifies same-story candidates as positives (§9); the file, the counts
 > and the readable sample in this directory are still the old ones and need a
-> rerun. §10 says what changed and what to check when the new numbers land.
+> rerun. §9 says what changed and what to check when the new numbers land.
 
 ---
 
@@ -250,9 +250,9 @@ cleaning described here, so it still contains the duplicate-query inflation.
 5. **No stemming.** The tokenizer folds diacritics but does not stem, so
    `Taiwanul` and `Taiwan` are different terms. Romanian is heavily inflected;
    a light stemmer would raise recall for both the positive and the negatives.
-   §10 works around this for title comparison only.
+   §9 works around this for title comparison only.
 
-## 10. What the 30 Aug review changed
+## 9. What the 30 Aug review changed
 
 Limitation 1 above turned out to be the real problem, and the review found a
 clean instance of it. For *"Ce funcție ocupa Ion Rădoi la Metrorex, în perioada
@@ -377,7 +377,82 @@ added `len(hits) - len(negatives)`, using the number of candidates *accepted*
 where it meant the number *consumed*. It now counts correctly, so it is not
 comparable with the figure in §4.
 
-## 9. Reproducing
+## 10. Training layout (`alina0195/ro-msmarco-divided` structure)
+
+`triplets_27b_bm25.jsonl` is the working format — ids, scores, provenance. For
+training it is flattened into the layout of
+[`alina0195/ro-msmarco-divided`](https://huggingface.co/datasets/alina0195/ro-msmarco-divided),
+which is three string columns holding the **text**, one row per
+(query, positive, negative) pair — a query with four negatives becomes four
+rows repeating the anchor and the positive:
+
+| column | |
+|---|---|
+| `anchor` | the query |
+| `positive` | the document it was generated from |
+| `negative` | one mined hard negative |
+| `query_source` | **added** — where the query comes from |
+
+`query_source` is the upstream dataset or outlet of the positive: `adevarul`,
+`zf`, `realitatea`, `readerbench/ro-stories`, `readerbench/ro-text-summarization
+(alephnews)`, `BlackKakapo/recipes-ro`. The corpus is a merge of sources with
+very different registers — news, folk tales, recipes, summarisation corpora —
+and without the column an example carries no way to say which one it came from,
+so it cannot be weighted, filtered or reported on per source.
+
+```bash
+python3 -m src.task2_triplets.export_hf_dataset \
+    --input data/triplets/triplets_27b_bm25.jsonl \
+    --output data/triplets/hf/ro_retrieval_triplets.jsonl
+```
+
+Writes `.jsonl`, plus `.parquet` when pyarrow is available (it is, inside
+`containers/roretrieval.sif`). Two deliberate differences from a naive dump:
+
+* **No `Titlu:` / `Text:` labels.** Those are prompt scaffolding for the query
+  generator, not corpus content; training on them teaches a pattern no real
+  query carries. Title and body are joined with a blank line instead.
+* **`--split` groups by duplicate group.** A row-level random split would put a
+  query in train and a re-published copy of its positive in test, inflating
+  exactly what the split is meant to measure. Verified: zero positives shared
+  across splits.
+
+### Plot and upload
+
+The whole chain runs in one job — `scripts/slurm/build_triplets_bm25.sbatch`
+builds the triplets, exports the training layout, and plots `query_source`.
+`EXPORT=0` skips the last two, `SPLIT=1` writes train/eval/test:
+
+```bash
+SPLIT=1 sbatch --partition=haswell scripts/slurm/build_triplets_bm25.sbatch
+```
+
+The plot has two panels because rows and queries answer different questions:
+rows are what a training epoch actually sees (a query with four negatives is
+four rows), queries are how much of each source the generator covered. A source
+can be large in one and small in the other.
+
+> On a small set, grouping the split by duplicate group concentrates sources —
+> on the 224-query sample the eval split came out 100% `alephnews` and test 100%
+> `mediafax`. With thousands of groups this disappears, but check the per-source
+> breakdown the exporter prints before trusting a split.
+
+Uploading is a separate, deliberately awkward step — it needs a token, and
+`--yes` on top of `--public`, because a public dataset is not really
+retractable:
+
+```bash
+HF_TOKEN=hf_... apptainer exec containers/roretrieval.sif \
+    python3 -m src.task2_triplets.push_to_hf \
+        --input data/triplets/hf/triplets_27b_bm25_hf_train.jsonl \
+        --repo <user>/ro-retrieval-triplets --public --yes
+```
+
+`--card-only` prints the dataset card without uploading. The card carries the
+limitations from §8 and §9 — in particular that the mined positives are ~70%
+precise — rather than leaving someone downstream to discover them.
+
+## 11. Reproducing
 
 ```bash
 # on fep.grid.pub.ro - CPU partition, no GPU needed
