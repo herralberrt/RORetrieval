@@ -445,7 +445,7 @@ retractable:
 HF_TOKEN=hf_... apptainer exec containers/roretrieval.sif \
     python3 -m src.task2_triplets.push_to_hf \
         --input data/triplets/hf/triplets_27b_bm25_hf_train.jsonl \
-        --repo <user>/ro-retrieval-triplets --public --yes
+        --repo PaulBurca2005/ro-retrieval-triplets --public --yes
 ```
 
 `--card-only` prints the dataset card without uploading. The card carries the

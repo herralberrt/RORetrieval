@@ -5,7 +5,7 @@ are and what is wrong with them.
     HF_TOKEN=hf_… apptainer exec containers/roretrieval.sif \\
         python3 -m src.task2_triplets.push_to_hf \\
             --input data/triplets/hf/ro_retrieval_triplets.jsonl \\
-            --repo <user>/ro-retrieval-triplets \\
+            --repo PaulBurca2005/ro-retrieval-triplets \\
             --public --yes
 
 The upload is deliberately awkward to trigger by accident: it needs `--yes`,
@@ -153,9 +153,9 @@ def main(argv=None) -> None:
     parser.add_argument("--input", required=True, action="append",
                         help="exported file; repeat for several splits, named "
                              "<stem>_<split>.<ext>")
-    parser.add_argument("--repo", required=True,
-                        help="<hf-user>/ro-retrieval-triplets - the dataset name "
-                             "agreed for this set; the namespace is yours")
+    parser.add_argument("--repo",
+                        default="PaulBurca2005/ro-retrieval-triplets",
+                        help="the dataset this project publishes to")
     parser.add_argument("--title", default="Romanian retrieval triplets (BM25 hard negatives)")
     parser.add_argument("--public", action="store_true",
                         help="create the repo public. A public dataset is not "
