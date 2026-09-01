@@ -93,14 +93,47 @@ def report(triplets: List[Dict[str, Any]], corpus: Dict[str, Dict[str, Any]]) ->
     for doc_type, n in by_type.most_common():
         print(f"    {doc_type:<16} {n:>7}  ({100 * n / len(triplets):.1f}%)")
 
+    # Careful with the name: for the BM25 run this field is
+    # BM25(negative, query) / BM25(positive, query), a *query-relative score
+    # ratio*; for the dense run it is cosine(query, negative). Neither is a
+    # similarity between the negative and the positive document - reading it
+    # as one is what made "0.82" look like near-duplicate lexical overlap.
+    retrievers = {t.get("retriever") for t in triplets if t.get("retriever")}
+    ratio_label = ("BM25 score ratio vs. the positive"
+                   if retrievers == {"bm25"} else "cosine similarity to the query")
     sims = [s for t in triplets for s in t.get("negative_similarities", [])]
     pcts = percentiles(sims)
-    print(f"\n  negative similarity to the query  (n={len(sims)})")
+    print(f"\n  negative {ratio_label}  (n={len(sims)})")
     print(f"    mean {statistics.fmean(sims):.3f}   "
           + "   ".join(f"p{p} {v:.3f}" for p, v in pcts.items()))
 
+    # The measure the review actually wanted: how lexically close each kept
+    # negative is to the positive *document*. Anything high here is a follow-up
+    # article about the same story that --dup-idf-containment let through.
+    lex = [p.get("lexical_sim_to_positive") for t in triplets
+           for p in t.get("negative_provenance", [])
+           if p.get("lexical_sim_to_positive") is not None]
+    if lex:
+        lp = percentiles(lex)
+        print(f"\n  negative lexical overlap with the POSITIVE DOCUMENT "
+              f"(idf-weighted, n={len(lex)})")
+        print(f"    mean {statistics.fmean(lex):.3f}   "
+              + "   ".join(f"p{p} {v:.3f}" for p, v in lp.items()))
+        for cut in (0.5, 0.6, 0.7, 0.8):
+            over = sum(1 for v in lex if v >= cut)
+            print(f"    >= {cut}: {over} ({100 * over / len(lex):.2f}%)")
+
+    mined = [d for t in triplets for d in t.get("mined_positive_doc_ids", [])]
+    if mined:
+        with_any = sum(1 for t in triplets if t.get("mined_positive_doc_ids"))
+        reasons = Counter(p.get("reason") for t in triplets
+                          for p in t.get("mined_positive_provenance", []))
+        print(f"\n  {len(mined)} candidates reclassified as positives over "
+              f"{with_any} queries ({100 * with_any / len(triplets):.1f}%)")
+        print("    by reason: " + ", ".join(f"{k} {v}" for k, v in reasons.most_common()))
+
     hardest = [t["negative_similarities"][0] for t in triplets if t.get("negative_similarities")]
-    print(f"    hardest negative per triplet: mean {statistics.fmean(hardest):.3f}, "
+    print(f"\n  hardest negative per triplet: mean {statistics.fmean(hardest):.3f}, "
           f"max {max(hardest):.3f}")
 
     counts = Counter(len(t.get("negative_doc_ids", [])) for t in triplets)
@@ -142,6 +175,10 @@ def report(triplets: List[Dict[str, Any]], corpus: Dict[str, Dict[str, Any]]) ->
 def write_sample(triplets: List[Dict[str, Any]], corpus: Dict[str, Dict[str, Any]],
                  path: str, per_type: int, chars: int, seed: int) -> None:
     rng = random.Random(seed)
+    # The BM25 builder tags its output; the dense one predates the field.
+    retrievers = {t.get("retriever") for t in triplets if t.get("retriever")}
+    retriever = retrievers.pop() if len(retrievers) == 1 else None
+    score_label = "scor" if retriever == "bm25" else "sim"
     grouped = defaultdict(list)
     for t in triplets:
         grouped[t.get("type", "?")].append(t)
@@ -150,7 +187,15 @@ def write_sample(triplets: List[Dict[str, Any]], corpus: Dict[str, Dict[str, Any
         f"EȘANTION DIN {Path(path).name.replace('_readable.txt', '.jsonl')}"
         f"  ({len(triplets):,} triplete)".replace(",", "."),
         "Pozitivul este documentul din care a fost generată întrebarea.",
-        "Negativele sunt minate prin căutare densă și filtrate pe banda de similaritate.",
+        (f"Negativele sunt minate cu {retriever}. `scor` = BM25(negativ, "
+         "întrebare) / BM25(pozitiv, întrebare) - cât de bine răspunde negativul "
+         "la întrebare\nfață de pozitiv, NU o similaritate între documente. "
+         "`lex` = suprapunerea lexicală ponderată cu idf\nîntre negativ și "
+         "documentul pozitiv; aceea decide dacă e aceeași știre."
+         if retriever == "bm25" else
+         "Negativele sunt minate prin căutare densă; `sim` = cosinus(întrebare, negativ)."),
+        "POZITIV RECUPERAT = candidat pe care BM25 l-a scos sus și care s-a "
+        "dovedit a fi aceeași știre ca pozitivul.",
         f"{per_type} triplete per categorie, ordonate de la negativul cel mai greu",
         "spre cel mai ușor, ca să se vadă ambele capete ale benzii.",
         "",
@@ -182,10 +227,24 @@ def write_sample(triplets: List[Dict[str, Any]], corpus: Dict[str, Dict[str, Any
             lines.append(f"  POZITIV [{pos_id}] {t.get('positive_title') or (title_of(pos) if pos else '')}")
             if pos:
                 lines.append(f"      {snippet(pos, chars)}")
-            for neg_id, sim in zip(t.get("negative_doc_ids", []),
-                                   t.get("negative_similarities", [])):
+            for mp in t.get("mined_positive_provenance", []):
+                doc = corpus.get(mp["doc_id"])
+                lines.append(
+                    f"  POZITIV RECUPERAT lex={mp['lexical_sim_to_positive']:.3f} "
+                    f"({mp['reason']}) [{mp['doc_id']}] {title_of(doc) if doc else ''}")
+                if doc:
+                    lines.append(f"      {snippet(doc, chars)}")
+            prov = t.get("negative_provenance", [])
+            for i, (neg_id, sim) in enumerate(zip(t.get("negative_doc_ids", []),
+                                                  t.get("negative_similarities", []))):
                 neg = corpus.get(neg_id)
-                lines.append(f"  NEGATIV sim={sim:.3f} [{neg_id}] {title_of(neg) if neg else ''}")
+                # `scor` is the query-relative BM25 ratio, `lex` the overlap with
+                # the positive document. Spelling both out in the sample is the
+                # point: one number says "hard", the other says "false".
+                extra = (f" lex={prov[i]['lexical_sim_to_positive']:.3f}"
+                         if i < len(prov) and "lexical_sim_to_positive" in prov[i] else "")
+                lines.append(f"  NEGATIV {score_label}={sim:.3f}{extra} "
+                             f"[{neg_id}] {title_of(neg) if neg else ''}")
                 if neg:
                     lines.append(f"      {snippet(neg, chars)}")
             lines.append("")

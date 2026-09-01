@@ -31,6 +31,28 @@ The job is bounded to a 2-hour slot: it stops cleanly at
 resubmitting continues where it stopped. Full instructions, sizing table and
 troubleshooting: [containers/README.md](containers/README.md).
 
+Statistics for the query set that came out of this - volume and quality per
+category, and what drives the variation - are in
+[data/queries/README.md](data/queries/README.md).
+
+### Triplet mining (CPU)
+
+The positive is known by construction (the query was generated from it), so
+retrieval only mines hard negatives. The BM25 path also cleans the query set
+first - duplicated documents, boilerplate and self-referential queries - and
+needs no GPU:
+
+```bash
+mkdir -p logs
+sbatch --partition=haswell scripts/slurm/build_triplets_bm25.sbatch
+```
+
+Roughly 2.5 minutes for 70k queries against a 117k-document corpus. The dense
+variant (`scripts/slurm/build_triplets.sbatch`, MiniLM + faiss) is kept for
+comparison; the two sets share almost no negatives, so they are complementary.
+Measured filter counts and hardness distributions:
+[data/triplets/README.md](data/triplets/README.md).
+
 ### Full Pipeline Execution
 ```bash
 cd src

@@ -26,7 +26,9 @@ src/
 │
 ├── task2_triplets/            # Triplet generation & filtering
 │   ├── __init__.py
-│   ├── build_triplets.py      # MAIN: mine hard negatives for the generated queries
+│   ├── build_triplets.py      # Dense variant: hard negatives from a MiniLM bi-encoder
+│   ├── build_triplets_bm25.py # MAIN: cleaned query set + BM25 hard negatives
+│   ├── bm25.py                # Okapi BM25 inverted index (numpy only, no new deps)
 │   ├── inspect_triplets.py    # Summary + readable sample of the triplets
 │   ├── triplet_generator.py   # Older variant: positive guessed by a retriever
 │   ├── task2_triplets.py      # Task 2: Triplet creation
@@ -64,7 +66,8 @@ scripts/
 ├── download_model.sh        # Pre-cache Gemma weights (login node)
 └── slurm/
     ├── generate_queries.sbatch  # 2h GPU job for query generation
-    └── build_triplets.sbatch    # GPU job for hard-negative mining
+    ├── build_triplets.sbatch      # GPU job for dense hard-negative mining
+    └── build_triplets_bm25.sbatch # CPU job for BM25 hard-negative mining
 ```
 
 ## Key Scripts & Usage
@@ -183,6 +186,41 @@ re-embeds the queries.
 
 The older `triplet_generator.py` / `task2_triplets.py` / `task3_filter.py`
 path picks the positive with a retriever instead and is kept for comparison.
+
+### 3b. BM25 triplets on a cleaned query set (CURRENT) ✅
+
+`build_triplets_bm25.py` is the same contract with a lexical retriever and the
+cleaning that `data/queries/README.md` argued for. It needs no GPU and no
+embedding cache - BM25 is an inverted index in numpy - so it runs on the plain
+CPU partition in ~15 minutes.
+
+```bash
+sbatch --partition=haswell scripts/slurm/build_triplets_bm25.sbatch
+
+# Or directly
+python3 -m src.task2_triplets.build_triplets_bm25 \
+    --queries data/queries/queries_gemma3_27b.jsonl \
+    --output data/triplets/triplets_27b_bm25.jsonl
+```
+
+What it fixes, in the order the filters run:
+
+- **Duplicated corpus.** Documents are grouped by a near-duplicate key (title +
+  first 600 characters), not by an exact text hash, because outlets republish an
+  article with a different tail. Only one copy per group is indexed.
+- **Boilerplate.** Cookie banners, navigation stubs and documents under
+  `--min-doc-chars` are dropped from the corpus entirely.
+- **Unanswerable queries.** Queries referring to "articolul" / "textul" /
+  "documentul" are dropped (`--drop-meta-queries`), and every distinct query
+  text is kept once (`--dedupe-queries`).
+- **False negatives.** A candidate is rejected if it outscores the positive
+  (`--max-neg-score-ratio`), if it is a near-copy of the positive or of a
+  negative already picked (`--dup-token-overlap`, `--dup-title-overlap`), or if
+  it shares fewer than `--min-shared-query-terms` of the query's terms. Queries
+  whose own document is not in the BM25 candidate list are dropped entirely.
+
+Every filter count lands in `<output>.stats.json`, and the measured
+distributions are written up in `data/triplets/README.md`.
 
 ### 4. Model Training
 ```bash

@@ -19,6 +19,33 @@ from utils import load_jsonl, save_jsonl, ensure_dir
 from faiss_indexer import FaissIndexer
 
 
+
+def all_relevant_doc_ids(triplet):
+    """Every document that answers this query, not just the generating one.
+
+    A query's positive is the document it was generated from, but a
+    multi-document prompt is shown several, and all of them answer it.
+    `additional_positive_doc_ids` records those, and it comes straight from the
+    generation prompt, so it is as trustworthy as the positive itself. Scoring
+    against the generating document alone marks a retriever wrong for returning
+    one of the others.
+
+    `mined_positive_doc_ids` is deliberately NOT counted here. Those are BM25
+    candidates the triplet builder judged to be the positive's own story by
+    lexical overlap, and that judgement was measured at roughly 70% precision -
+    it cannot tell a follow-up on the same event from a different event
+    involving the same people. Counting them as relevant would inflate every
+    metric with documents that do not answer the query. They are recorded for a
+    reranker to re-judge; until something verifies them, they are not ground
+    truth.
+
+    The field is absent from older triplet files; those score as before.
+    """
+    ids = [triplet.get("positive_doc_id", "")]
+    ids += triplet.get("additional_positive_doc_ids") or []
+    return {i for i in ids if i}
+
+
 class RetrievalEvaluator:
     
     def __init__(self, corpus_path: str, index_dir: str = "results/faiss",
@@ -115,7 +142,7 @@ class RetrievalEvaluator:
             query = triplet.get("query", "")
             positive_doc_id = triplet.get("positive_doc_id", "")
             
-            relevant_docs = {positive_doc_id}
+            relevant_docs = all_relevant_doc_ids(triplet)
             
             metrics = self.evaluate_query(query, relevant_docs, top_k=10)
             
