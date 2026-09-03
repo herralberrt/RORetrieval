@@ -1,9 +1,15 @@
 #!/bin/bash
 #SBATCH --job-name=roq-colbert
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=56G
 #SBATCH --time=04:00:00
+#
+# The CPU count is set by a partition limit, not by what the job needs: h200 has
+# MaxMemPerCPU=4591 MB, so memory per CPU must stay under it or the job sits in
+# PENDING with Reason=PartitionConfig forever rather than being rejected. 56G
+# over 16 CPUs is 3584 MB each, comfortably inside. Check with
+# `scontrol show partition <name> | grep MaxMemPerCPU` before changing either.
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
 #
