@@ -41,7 +41,7 @@ tags:
 - bm25
 size_categories:
 - {size_category}
----
+{configs}---
 
 # {title}
 
@@ -79,7 +79,7 @@ article say…") are removed.
 
 ## Sources
 
-{sources_table}
+{figure}{sources_table}
 
 ## Known limitations
 
@@ -112,12 +112,25 @@ query and a re-published copy of its positive never land on opposite sides.
 """
 
 
-def read_rows(path: str) -> List[Dict]:
+def count_sources(path: str) -> Counter:
+    """`query_source -> rows`, without materialising the passages.
+
+    The card needs one column; the train split is 123 MB of parquet whose bulk
+    is the positive and negative texts, and reading those into Python just to
+    count a label costs a gigabyte for nothing.
+    """
+    counts: Counter = Counter()
     if path.endswith(".parquet"):
         import pyarrow.parquet as pq
-        return pq.read_table(path).to_pylist()
+        column = pq.read_table(path, columns=["query_source"]).column("query_source")
+        for chunk in column.chunks:
+            counts.update(chunk.to_pylist())
+        return counts
     with open(path, "r", encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
+        for line in f:
+            if line.strip():
+                counts[json.loads(line).get("query_source")] += 1
+    return counts
 
 
 def size_category(n: int) -> str:
@@ -129,16 +142,47 @@ def size_category(n: int) -> str:
     return "10M<n<100M"
 
 
-def build_card(rows: List[Dict], title: str, split_names: List[str]) -> str:
-    counts = Counter(r.get("query_source") or "(necunoscut)" for r in rows)
+def configs_block(paths: List[str]) -> str:
+    """Map each uploaded file to its split, explicitly.
+
+    Without this the Hub infers splits from filenames, and `eval` is not one of
+    the names it knows - it would be folded into `test` or dropped, and the
+    dataset viewer is the first thing anyone sees on a public repo.
+    """
+    entries = []
+    for path in paths:
+        stem = Path(path).stem
+        split = stem.rsplit("_", 1)[1] if "_" in stem else "train"
+        if split not in ("train", "eval", "test"):
+            continue
+        entries.append((split, f"data/{Path(path).name}"))
+    if not entries:
+        return ""
+    order = {"train": 0, "eval": 1, "test": 2}
+    entries.sort(key=lambda e: order.get(e[0], 9))
+    lines = ["configs:", "- config_name: default", "  data_files:"]
+    for split, target in entries:
+        lines.append(f"  - split: {split}")
+        lines.append(f"    path: {target}")
+    return "\n".join(lines) + "\n"
+
+
+def build_card(counts: Counter, title: str, split_names: List[str],
+               paths: List[str], figure: str = "") -> str:
+    counts = Counter({k or "(necunoscut)": v for k, v in counts.items()})
     total = sum(counts.values())
     lines = ["| source | rows | share |", "|---|---:|---:|"]
     for source, n in counts.most_common():
         lines.append(f"| `{source}` | {n:,} | {100 * n / total:.1f}% |")
     splits_note = (f"`{'`, `'.join(split_names)}`."
                    if split_names else "A single split (`train`).")
+    # A relative path renders inline on the dataset page; the file has to be
+    # in the repo for it, which is why --figure uploads it alongside the card.
+    figure_md = (f"![Query provenance]({figure})\n\n" if figure else "")
     return CARD.format(
         title=title,
+        figure=figure_md,
+        configs=configs_block(paths),
         size_category=size_category(total),
         sources_table="\n".join(lines).replace(",", " "),
         splits_note=splits_note,
@@ -164,26 +208,36 @@ def main(argv=None) -> None:
                         help="defaults to $HF_TOKEN; falls back to the token "
                              "stored by `huggingface-cli login`, which keeps it "
                              "out of shell history and out of any transcript")
+    parser.add_argument("--skip-data", action="store_true",
+                        help="update only the card and the figure, leaving the "
+                             "data files on the Hub untouched. The card still "
+                             "reads the local files to count sources, so the "
+                             "numbers stay honest")
+    parser.add_argument("--figure", default=None,
+                        help="a PNG to upload and show in the card, e.g. the "
+                             "query_source plot")
     parser.add_argument("--card-only", action="store_true",
                         help="write the card to stdout and exit, uploading nothing")
     parser.add_argument("--yes", action="store_true",
                         help="required to actually upload")
     args = parser.parse_args(argv)
 
-    all_rows: List[Dict] = []
+    counts: Counter = Counter()
     split_names: List[str] = []
     for path in args.input:
-        rows = read_rows(path)
-        all_rows.extend(rows)
+        found = count_sources(path)
+        counts.update(found)
         stem = Path(path).stem
         if "_" in stem and stem.rsplit("_", 1)[1] in ("train", "eval", "test"):
             split_names.append(stem.rsplit("_", 1)[1])
-        print(f"  {path}: {len(rows)} rows")
-    if not all_rows:
+        print(f"  {path}: {sum(found.values())} rows")
+    if not counts:
         print("✗ nothing to upload")
         return
 
-    card = build_card(all_rows, args.title, sorted(set(split_names)))
+    figure_name = Path(args.figure).name if args.figure else ""
+    card = build_card(counts, args.title, sorted(set(split_names)), args.input,
+                      figure_name)
     if args.card_only:
         print(card)
         return
@@ -199,7 +253,7 @@ def main(argv=None) -> None:
             sys.exit(1)
         print("  using the token from `huggingface-cli login`")
     if not args.yes:
-        print(f"\nWould upload {len(all_rows)} rows to {args.repo} "
+        print(f"\nWould upload {sum(counts.values())} rows to {args.repo} "
               f"({'PUBLIC' if args.public else 'private'}).")
         print("Re-run with --yes to actually do it.")
         return
@@ -208,10 +262,20 @@ def main(argv=None) -> None:
     api = HfApi(token=args.token)
     api.create_repo(args.repo, repo_type="dataset", private=not args.public,
                     exist_ok=True)
-    for path in args.input:
-        api.upload_file(path_or_fileobj=path, path_in_repo=f"data/{Path(path).name}",
+    if args.skip_data:
+        print("  (--skip-data: data files left as they are on the Hub)")
+    else:
+        for path in args.input:
+            api.upload_file(path_or_fileobj=path,
+                            path_in_repo=f"data/{Path(path).name}",
+                            repo_id=args.repo, repo_type="dataset")
+            print(f"  ↑ data/{Path(path).name}")
+    if args.figure:
+        # At the repo root, not under data/, so the dataset viewer does not try
+        # to parse a PNG as a data file.
+        api.upload_file(path_or_fileobj=args.figure, path_in_repo=figure_name,
                         repo_id=args.repo, repo_type="dataset")
-        print(f"  ↑ data/{Path(path).name}")
+        print(f"  ↑ {figure_name}")
     api.upload_file(path_or_fileobj=card.encode("utf-8"), path_in_repo="README.md",
                     repo_id=args.repo, repo_type="dataset")
     print(f"\n✓ https://huggingface.co/datasets/{args.repo} "
