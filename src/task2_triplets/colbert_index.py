@@ -1,23 +1,38 @@
 """
-ColBERT: Contextualized Late Interaction over BERT.
+Late-interaction (ColBERT-style) retrieval over the Romanian corpus.
 
-Late interaction retrieval: documents and queries are encoded as sequences of
-embeddings (not a single vector like dense), and scoring is done token-by-token
-using MaxSim: for each query token embedding, find the max similarity to any
-document token embedding, then sum.
+A dense bi-encoder collapses a document into one vector, so "Rădoi a semnat cu
+Craiova" and "Craiova a semnat cu Rădoi" land in nearly the same place and a
+long document's specifics get averaged away. Late interaction keeps one vector
+per *token* and scores with MaxSim - for every query token, the best-matching
+document token, summed:
 
-Why ColBERT > BM25:
-- Token-level semantic understanding (not just lexical matching)
-- Efficient: no need to embed the full corpus at query time
-- Works great for multilingual (Romanian in this case)
-- Better than dense for retrieval (dense throws away positional info)
+    score(q, d) = Σ_i max_j  Eq_i · Ed_j          (both L2-normalised)
 
-Paper: https://arxiv.org/abs/2004.12832
+That is the ColBERT formulation (arxiv 2004.12832). What this file is *not* is
+a trained ColBERT checkpoint: `colbert-ir` is not in the image and there is no
+ColBERT trained for Romanian, so the token embeddings come from a multilingual
+sentence-transformer that was trained for mean-pooled similarity, not for late
+interaction. Calling it "ColBERT" would overclaim - it is late-interaction
+scoring over an off-the-shelf multilingual encoder, and it earns its place by
+ranking differently from both BM25 and the mean-pooled dense run, not by being
+a faithful ColBERT.
+
+Two stages, because MaxSim over a whole corpus per query is not affordable:
+
+1.  **Candidates** from the mean-pooled vectors - one matmul over an
+    87k x 384 matrix, milliseconds for a batch of queries.
+2.  **Rerank** those candidates with MaxSim over their token embeddings.
+
+The whole token tensor is held on the GPU (87k docs x 128 tokens x 384 dims in
+fp16 is ~8.6 GB, against 80 GB on an H200), so the rerank is a single einsum
+with no host round-trip. On CPU the same code runs, slowly - use
+`--doc-max-tokens 64` and a corpus subset if you have to.
 """
 
 import sys
-from typing import Dict, List, Sequence, Tuple
 from pathlib import Path
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -27,187 +42,142 @@ sys.path[:0] = [
     if p.is_dir() and not p.name.startswith((".", "_"))
 ]
 
-from utils import load_jsonl
+DEFAULT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
-class ColBERTIndex:
-    """ColBERT index: token embeddings for documents and queries."""
-    
-    def __init__(self, documents: Sequence[Dict],
-                 model_name: str = "colbert-ir/colbertv2.0",
-                 device: str = "cuda"):
-        """
-        Args:
-            documents: Corpus documents (with 'title' and 'content')
-            model_name: ColBERT model name (from HF or local)
-            device: "cuda" or "cpu"
-        """
-        self.documents = list(documents)
+class LateInteractionIndex:
+    """Token-level index with MaxSim scoring and a mean-pooled first stage."""
+
+    def __init__(self, model_name: str = DEFAULT_MODEL,
+                 device: Optional[str] = None,
+                 doc_max_tokens: int = 128,
+                 query_max_tokens: int = 32,
+                 batch_size: int = 256,
+                 dtype: str = "float16"):
+        import torch
+        self.torch = torch
         self.model_name = model_name
-        self.device = device
-        
-        self.colbert = None
-        self.doc_embeddings = None  # List of (doc_id, token_embeddings)
-    
-    def load_model(self):
-        """Load ColBERT model from HuggingFace."""
-        try:
-            from colbert.infra import ColBERTConfig
-            from colbert.modeling.colbert import ColBERT as ColBERTModel
-        except ImportError:
-            raise ImportError(
-                "Install ColBERT: pip install colbert-ir\n"
-                "Or use: pip install git+https://github.com/stanford-futuredata/ColBERT.git"
-            )
-        
-        print(f"Loading ColBERT model: {self.model_name}")
-        config = ColBERTConfig(
-            doc_maxlen=220,
-            query_maxlen=32,
-            checkpoint=self.model_name
-        )
-        self.colbert = ColBERTModel.from_pretrained(config.checkpoint,
-                                                      config=config)
-        self.colbert = self.colbert.to(self.device)
-        self.colbert.eval()
-    
-    def build_index(self):
-        """Build embeddings for all documents."""
-        if self.colbert is None:
-            self.load_model()
-        
-        print(f"Encoding {len(self.documents)} documents with ColBERT...")
-        
-        self.doc_embeddings = []
-        
-        with torch.no_grad():
-            for i, doc in enumerate(self.documents):
-                if (i + 1) % 1000 == 0:
-                    print(f"  Encoded {i+1}/{len(self.documents)}")
-                
-                doc_id = doc.get("doc_id", f"doc_{i}")
-                title = doc.get("title", "")
-                content = doc.get("content", "")
-                text = f"{title} {content}".strip()
-                
-                # Encode document: returns embeddings of shape (seq_len, hidden_dim)
-                D = self.colbert.docFromText([text], bsize=1)  # [1, seq_len, 128]
-                self.doc_embeddings.append((doc_id, D[0].cpu()))  # Store on CPU
-        
-        print(f"✓ Built index for {len(self.doc_embeddings)} documents")
-    
-    def search(self, query: str, top_k: int = 10) -> List[Tuple[str, float]]:
-        """Search using ColBERT scoring (MaxSim)."""
-        if self.colbert is None or self.doc_embeddings is None:
-            raise RuntimeError("Index not built. Call build_index() first.")
-        
-        with torch.no_grad():
-            # Encode query: returns embeddings of shape (1, seq_len, hidden_dim)
-            Q = self.colbert.queryFromText([query], bsize=1)  # [1, seq_len, 128]
-            Q = Q[0]  # Remove batch dimension: [seq_len, 128]
-        
-        # Score all documents
-        scores = []
-        for doc_id, D in self.doc_embeddings:
-            # MaxSim: for each query token, find max similarity to document tokens
-            # D shape: [doc_seq_len, 128]
-            # Q shape: [query_seq_len, 128]
-            
-            # Cosine similarity matrix: [query_seq_len, doc_seq_len]
-            similarity = torch.nn.functional.cosine_similarity(
-                Q.unsqueeze(1),  # [query_seq_len, 1, 128]
-                D.unsqueeze(0),  # [1, doc_seq_len, 128]
-                dim=2
-            )
-            
-            # MaxSim: max similarity for each query token, then sum
-            max_sims = similarity.max(dim=1)[0]  # [query_seq_len]
-            score = max_sims.sum().item()
-            
-            scores.append((doc_id, score))
-        
-        # Sort and return top-k
-        scores.sort(key=lambda x: x[1], reverse=True)
-        return scores[:top_k]
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.doc_max_tokens = doc_max_tokens
+        self.query_max_tokens = query_max_tokens
+        self.batch_size = batch_size
+        # fp16 halves the resident tensor and MaxSim is a ranking, not a
+        # calibrated score, so the precision loss does not change the order.
+        self.dtype = getattr(torch, dtype) if self.device != "cpu" else torch.float32
 
-
-# Optional: simpler version without full ColBERT, using just sentence-transformers
-# for token embeddings (faster, less memory)
-class ColBERTLiteIndex:
-    """Simplified ColBERT using sentence-transformers for embeddings."""
-    
-    def __init__(self, documents: Sequence[Dict],
-                 model_name: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"):
-        """
-        Args:
-            documents: Corpus documents
-            model_name: Sentence transformer model (tokenizes into subword tokens)
-        """
-        self.documents = list(documents)
-        self.model_name = model_name
-        
         self.model = None
         self.tokenizer = None
-        self.doc_embeddings = None
-    
-    def load_model(self):
-        """Load sentence transformer for token-level embeddings."""
-        try:
-            from sentence_transformers import SentenceTransformer
-            from transformers import AutoTokenizer
-        except ImportError:
-            raise ImportError("Install: pip install sentence-transformers transformers")
-        
-        print(f"Loading model: {self.model_name}")
-        self.model = SentenceTransformer(self.model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model.get_sentence_embedding_dimension()  # Get base model name
-        )
-    
-    def build_index(self):
-        """Build token embeddings for documents."""
+        self.doc_tokens = None      # (n_docs, doc_max_tokens, dim), normalised
+        self.doc_mask = None        # (n_docs, doc_max_tokens) bool
+        self.doc_pooled = None      # (n_docs, dim), normalised
+        self.dim = None
+
+    # ------------------------------------------------------------------ model
+    def load_model(self) -> None:
+        from transformers import AutoModel, AutoTokenizer
+        print(f"  loading {self.model_name} on {self.device} …", flush=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.model = AutoModel.from_pretrained(self.model_name)
+        self.model.eval().to(self.device)
+        self.dim = self.model.config.hidden_size
+
+    def _encode(self, texts: Sequence[str], max_tokens: int):
+        """`(token_embeddings, mask)` for one batch, L2-normalised."""
+        torch = self.torch
+        batch = self.tokenizer(list(texts), padding="max_length", truncation=True,
+                               max_length=max_tokens, return_tensors="pt").to(self.device)
+        with torch.no_grad():
+            out = self.model(**batch).last_hidden_state          # (b, L, d)
+        mask = batch["attention_mask"].bool()
+        # Normalising here means MaxSim is a plain dot product later.
+        out = torch.nn.functional.normalize(out, p=2, dim=-1)
+        out = out.masked_fill(~mask.unsqueeze(-1), 0.0)
+        return out, mask
+
+    # ------------------------------------------------------------------ index
+    def build(self, texts: Sequence[str]) -> None:
+        """Encode the corpus once: token embeddings plus mean-pooled vectors."""
+        torch = self.torch
         if self.model is None:
             self.load_model()
-        
-        print(f"Encoding {len(self.documents)} documents...")
-        
-        self.doc_embeddings = []
-        
-        for i, doc in enumerate(self.documents):
-            if (i + 1) % 5000 == 0:
-                print(f"  Encoded {i+1}/{len(self.documents)}")
-            
-            doc_id = doc.get("doc_id", f"doc_{i}")
-            title = doc.get("title", "")
-            content = doc.get("content", "")
-            text = f"{title} {content}".strip()
-            
-            # Tokenize
-            tokens = self.tokenizer.encode(text, max_length=512, truncation=True)
-            
-            # Get token embeddings (using the model's pooling layer without pooling)
-            # This is a workaround - properly requires ColBERT's token_embeddings
-            embeddings = self.model.encode(text, convert_to_tensor=True)
-            self.doc_embeddings.append((doc_id, embeddings))
-        
-        print(f"✓ Index built for {len(self.doc_embeddings)} documents")
-    
-    def search(self, query: str, top_k: int = 10) -> List[Tuple[str, float]]:
-        """Search using MaxSim-like scoring."""
-        if self.model is None or self.doc_embeddings is None:
-            raise RuntimeError("Index not built. Call build_index() first.")
-        
-        query_embedding = self.model.encode(query, convert_to_tensor=True)
-        
-        scores = []
-        for doc_id, doc_embedding in self.doc_embeddings:
-            # Simple cosine similarity (not true MaxSim, but approximation)
-            import torch
-            score = torch.nn.functional.cosine_similarity(
-                query_embedding.unsqueeze(0),
-                doc_embedding.unsqueeze(0)
-            ).item()
-            scores.append((doc_id, score))
-        
-        scores.sort(key=lambda x: x[1], reverse=True)
-        return scores[:top_k]
+        n = len(texts)
+        self.doc_tokens = torch.zeros((n, self.doc_max_tokens, self.dim),
+                                      dtype=self.dtype, device=self.device)
+        self.doc_mask = torch.zeros((n, self.doc_max_tokens),
+                                    dtype=torch.bool, device=self.device)
+        pooled = torch.zeros((n, self.dim), dtype=self.dtype, device=self.device)
+
+        for start in range(0, n, self.batch_size):
+            chunk = texts[start:start + self.batch_size]
+            emb, mask = self._encode(chunk, self.doc_max_tokens)
+            end = start + len(chunk)
+            self.doc_tokens[start:end] = emb.to(self.dtype)
+            self.doc_mask[start:end] = mask
+            # Mean over real tokens only; the padded rows are already zero.
+            counts = mask.sum(dim=1, keepdim=True).clamp(min=1)
+            pooled[start:end] = (emb.sum(dim=1) / counts).to(self.dtype)
+            if (end // self.batch_size) % 40 == 0:
+                print(f"    encoded {end}/{n}", flush=True)
+
+        self.doc_pooled = torch.nn.functional.normalize(pooled.float(), p=2, dim=-1).to(self.dtype)
+        gb = self.doc_tokens.element_size() * self.doc_tokens.nelement() / 1e9
+        print(f"  index: {n} docs x {self.doc_max_tokens} tokens x {self.dim} dims "
+              f"({gb:.1f} GB on {self.device})")
+
+    # ----------------------------------------------------------------- search
+    def encode_queries(self, queries: Sequence[str]):
+        """`(token_embeddings, mask)` for a batch of queries."""
+        return self._encode(queries, self.query_max_tokens)
+
+    def search(self, queries: Sequence[str], top_k: int,
+               first_stage: int = 1000,
+               allowed: Optional["np.ndarray"] = None
+               ) -> Tuple[np.ndarray, np.ndarray]:
+        """Late-interaction search.
+
+        `allowed` restricts the search to a subset of document rows - used to
+        keep negatives inside the positive's own document type, the same way the
+        BM25 builder does. Returns `(indices, scores)`, both (n_queries, top_k),
+        best first.
+        """
+        torch = self.torch
+        q_emb, q_mask = self.encode_queries(queries)          # (b, Lq, d)
+
+        pooled = self.doc_pooled
+        index_map = None
+        if allowed is not None:
+            index_map = torch.as_tensor(np.asarray(allowed), device=self.device,
+                                        dtype=torch.long)
+            pooled = pooled[index_map]
+
+        # Stage 1: mean-pooled cosine, to cut the corpus down to a shortlist.
+        q_pooled = torch.nn.functional.normalize(
+            (q_emb.sum(dim=1) / q_mask.sum(dim=1, keepdim=True).clamp(min=1)).float(),
+            p=2, dim=-1).to(self.dtype)
+        coarse = q_pooled @ pooled.T                          # (b, n_allowed)
+        k1 = min(first_stage, coarse.shape[1])
+        cand = coarse.topk(k1, dim=1).indices                 # (b, k1)
+
+        # Stage 2: MaxSim over the shortlist's token embeddings.
+        results_i, results_s = [], []
+        for row in range(len(queries)):
+            local = cand[row]
+            rows = index_map[local] if index_map is not None else local
+            d_tok = self.doc_tokens[rows]                     # (k1, Ld, d)
+            d_mask = self.doc_mask[rows]                      # (k1, Ld)
+            q = q_emb[row][q_mask[row]].to(self.dtype)        # (nq, d)
+            # (k1, nq, Ld): every query token against every document token.
+            sim = torch.einsum("qd,kld->kql", q, d_tok)
+            sim = sim.masked_fill(~d_mask.unsqueeze(1), float("-inf"))
+            score = sim.max(dim=2).values.sum(dim=1)          # MaxSim
+            k2 = min(top_k, score.shape[0])
+            best = score.topk(k2)
+            results_i.append(rows[best.indices].detach().cpu().numpy())
+            results_s.append(best.values.float().detach().cpu().numpy())
+
+        pad_i = np.full((len(queries), top_k), -1, dtype=np.int64)
+        pad_s = np.zeros((len(queries), top_k), dtype=np.float32)
+        for r, (idx, sc) in enumerate(zip(results_i, results_s)):
+            pad_i[r, :len(idx)] = idx
+            pad_s[r, :len(sc)] = sc
+        return pad_i, pad_s
