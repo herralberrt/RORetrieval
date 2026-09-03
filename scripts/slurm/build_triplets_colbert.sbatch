@@ -6,8 +6,8 @@
 #SBATCH --time=04:00:00
 #
 # The CPU count is set by a partition limit, not by what the job needs: h200 has
-# MaxMemPerCPU=4591 MB, so memory per CPU must stay under it or the job sits in
-# PENDING with Reason=PartitionConfig forever rather than being rejected. 56G
+# MaxMemPerCPU=4591 MB (dgxa100 allows 27000), so memory per CPU must stay under
+# the smallest limit you might submit to. 56G
 # over 16 CPUs is 3584 MB each, comfortably inside. Check with
 # `scontrol show partition <name> | grep MaxMemPerCPU` before changing either.
 #SBATCH --output=logs/%x-%j.out
@@ -19,7 +19,14 @@
 # whole tensor is held in device memory (87k docs x 128 tokens x 384 dims in
 # fp16 is ~8.6 GB), so the rerank is one einsum with no host round-trip.
 #
-#     sbatch --partition=h200 scripts/slurm/build_triplets_colbert.sbatch
+#     sbatch --partition=dgxa100 scripts/slurm/build_triplets_colbert.sbatch
+#
+# Use dgxa100, not h200. h200 parks every job from this account in PENDING with
+# Reason=PartitionConfig and never runs it - verified by submitting a trivial
+# job with no GPU request at all, which stuck the same way, so it is a partition
+# policy rather than anything in this script. `sbatch --test-only` reports h200
+# as startable, which is misleading. dgxa100, dgxh100, ucsx and xl all accept
+# and run jobs; ml queues normally.
 #
 # Calibration first, always. The score band below is NOT the BM25 band - MaxSim
 # sums cosines, so its ratios sit high and close together (p5 0.61, p50 0.82,
@@ -27,7 +34,7 @@
 # distribution, then set MIN_RATIO/MAX_RATIO and run the full pass:
 #
 #     MAX_QUERIES=3000 TRIPLETS_OUTPUT=data/triplets/calib_colbert.jsonl \
-#         sbatch --partition=h200 scripts/slurm/build_triplets_colbert.sbatch
+#         sbatch --partition=dgxa100 scripts/slurm/build_triplets_colbert.sbatch
 
 set -euo pipefail
 
