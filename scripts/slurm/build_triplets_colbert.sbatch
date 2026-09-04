@@ -5,11 +5,12 @@
 #SBATCH --mem=56G
 #SBATCH --time=04:00:00
 #
-# The CPU count is set by a partition limit, not by what the job needs: h200 has
-# MaxMemPerCPU=4591 MB (dgxa100 allows 27000), so memory per CPU must stay under
-# the smallest limit you might submit to. 56G
-# over 16 CPUs is 3584 MB each, comfortably inside. Check with
-# `scontrol show partition <name> | grep MaxMemPerCPU` before changing either.
+# The CPU count is set by a partition limit, not by what the job needs. Memory
+# per CPU must stay under the partition's MaxMemPerCPU - 4591 MB on h200 and xl,
+# 27000 on dgxa100/dgxh100, 4140 on ucsx - or the job is parked in PENDING
+# rather than rejected. 56G over 16 CPUs is 3584 MB each, inside all of them.
+# Check with `scontrol show partition <name> | grep MaxMemPerCPU` before
+# changing either number.
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
 #

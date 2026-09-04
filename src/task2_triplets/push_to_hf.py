@@ -38,7 +38,7 @@ tags:
 - retrieval
 - triplets
 - hard-negatives
-- bm25
+- {method_tag}
 size_categories:
 - {size_category}
 {configs}---
@@ -47,7 +47,9 @@ size_categories:
 
 `(anchor, positive, negative)` triplets for training a Romanian retriever,
 generated with Gemma 3 27B over a merged Romanian corpus and mined for hard
-negatives with BM25.
+negatives with {method_name}.
+
+{sibling_note}
 
 The column layout follows
 [`alina0195/ro-msmarco-divided`](https://huggingface.co/datasets/alina0195/ro-msmarco-divided),
@@ -57,7 +59,7 @@ with one column added.
 |---|---|
 | `anchor` | the query |
 | `positive` | the document the query was generated from |
-| `negative` | one BM25-mined hard negative |
+| `negative` | one hard negative, mined by {method_name} |
 | `query_source` | the upstream dataset or outlet the query comes from |
 
 One row per (query, positive, negative) pair, so a query with four negatives is
@@ -69,13 +71,11 @@ The positive is not retrieved, it is known: every query was generated *from* a
 document, so that document is the positive by construction. Retrieval is used
 only to mine negatives.
 
-Candidates come from the BM25 top-100 within the positive's own document type.
-A candidate becomes a negative only if it scores in a band relative to the
-positive's own score for that query, shares enough of the query's idf mass,
-contains one of the query's rarest terms, and is not a near-copy of the positive
-or of a negative already picked. The corpus is deduplicated by a near-duplicate
-key first, boilerplate is dropped, and self-referential queries ("what does the
-article say…") are removed.
+{how_built}
+
+The corpus is deduplicated by a near-duplicate key first, boilerplate is
+dropped, and self-referential queries ("what does the article say…") are
+removed - identically in both variants, so the two are comparable.
 
 ## Sources
 
@@ -133,6 +133,54 @@ def count_sources(path: str) -> Counter:
     return counts
 
 
+# Per-variant card text. The two datasets share every other section, and the
+# differences are exactly what a reader needs in order to choose between them.
+METHODS = {
+    "bm25": {
+        "tag": "bm25",
+        "name": "BM25",
+        "how_built": (
+            "Candidates come from the BM25 top-100 within the positive's own\n"
+            "document type. A candidate becomes a negative only if it scores in a band\n"
+            "relative to the positive's own score for that query, shares enough of the\n"
+            "query's idf mass, contains one of the query's rarest terms, and is not a\n"
+            "near-copy of the positive or of a negative already picked."),
+        "sibling": (
+            "A late-interaction variant of the same triplets is at\n"
+            "[`PaulBurca2005/ro-retrieval-triplets-late-interaction`]"
+            "(https://huggingface.co/datasets/PaulBurca2005/ro-retrieval-triplets-late-interaction).\n"
+            "The two are close to disjoint - over the queries both contain, mean Jaccard\n"
+            "overlap between their negative sets is 0.053 and 73% share no negative at\n"
+            "all - so training on the union exposes a model to both failure modes."),
+    },
+    "late-interaction": {
+        "tag": "colbert",
+        "name": "late interaction (MaxSim)",
+        "how_built": (
+            "Retrieval is late interaction: one embedding per *token* rather than one\n"
+            "per document, scored with MaxSim - for every query token, the best matching\n"
+            "document token, summed. Two stages, because MaxSim over a whole corpus per\n"
+            "query is not affordable: mean-pooled vectors give a shortlist, MaxSim\n"
+            "reranks it. A candidate becomes a negative if it scores inside a band\n"
+            "relative to the positive's own MaxSim score and is not the positive's own\n"
+            "story.\n"
+            "\n"
+            "**This is not a trained ColBERT.** There is no ColBERT checkpoint for\n"
+            "Romanian, so the token embeddings come from a multilingual\n"
+            "sentence-transformer trained for mean-pooled similarity, not for late\n"
+            "interaction. It earns its place by ranking differently from BM25, not by\n"
+            "being a faithful ColBERT."),
+        "sibling": (
+            "A BM25 variant of the same triplets is at\n"
+            "[`PaulBurca2005/ro-retrieval-triplets`]"
+            "(https://huggingface.co/datasets/PaulBurca2005/ro-retrieval-triplets).\n"
+            "The two are close to disjoint - over the queries both contain, mean Jaccard\n"
+            "overlap between their negative sets is 0.053 and 73% share no negative at\n"
+            "all - so training on the union exposes a model to both failure modes."),
+    },
+}
+
+
 def size_category(n: int) -> str:
     for cutoff, label in ((1_000, "n<1K"), (10_000, "1K<n<10K"),
                           (100_000, "10K<n<100K"), (1_000_000, "100K<n<1M"),
@@ -168,7 +216,7 @@ def configs_block(paths: List[str]) -> str:
 
 
 def build_card(counts: Counter, title: str, split_names: List[str],
-               paths: List[str], figure: str = "") -> str:
+               paths: List[str], figure: str = "", method: str = "bm25") -> str:
     counts = Counter({k or "(necunoscut)": v for k, v in counts.items()})
     total = sum(counts.values())
     lines = ["| source | rows | share |", "|---|---:|---:|"]
@@ -179,8 +227,13 @@ def build_card(counts: Counter, title: str, split_names: List[str],
     # A relative path renders inline on the dataset page; the file has to be
     # in the repo for it, which is why --figure uploads it alongside the card.
     figure_md = (f"![Query provenance]({figure})\n\n" if figure else "")
+    spec = METHODS[method]
     return CARD.format(
         title=title,
+        method_tag=spec["tag"],
+        method_name=spec["name"],
+        how_built=spec["how_built"],
+        sibling_note=spec["sibling"],
         figure=figure_md,
         configs=configs_block(paths),
         size_category=size_category(total),
@@ -197,8 +250,7 @@ def main(argv=None) -> None:
     parser.add_argument("--input", required=True, action="append",
                         help="exported file; repeat for several splits, named "
                              "<stem>_<split>.<ext>")
-    parser.add_argument("--repo",
-                        default="PaulBurca2005/ro-retrieval-triplets",
+    parser.add_argument("--repo", required=True,
                         help="the dataset this project publishes to")
     parser.add_argument("--title", default="Romanian retrieval triplets (BM25 hard negatives)")
     parser.add_argument("--public", action="store_true",
@@ -208,6 +260,10 @@ def main(argv=None) -> None:
                         help="defaults to $HF_TOKEN; falls back to the token "
                              "stored by `huggingface-cli login`, which keeps it "
                              "out of shell history and out of any transcript")
+    parser.add_argument("--method", choices=sorted(METHODS), default="bm25",
+                        help="which miner produced these negatives; selects the "
+                             "card's description and its cross-link to the other "
+                             "variant")
     parser.add_argument("--skip-data", action="store_true",
                         help="update only the card and the figure, leaving the "
                              "data files on the Hub untouched. The card still "
@@ -237,7 +293,7 @@ def main(argv=None) -> None:
 
     figure_name = Path(args.figure).name if args.figure else ""
     card = build_card(counts, args.title, sorted(set(split_names)), args.input,
-                      figure_name)
+                      figure_name, args.method)
     if args.card_only:
         print(card)
         return
