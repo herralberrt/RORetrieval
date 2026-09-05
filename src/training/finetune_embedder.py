@@ -124,6 +124,13 @@ def main(argv=None) -> None:
             target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
                             "gate_proj", "up_proj", "down_proj"],
         )
+        # Gradient checkpointing recomputes each block's activations from its
+        # inputs, and those inputs do not require grad when the base weights are
+        # frozen - so the graph ends before it reaches the adapters and backward
+        # dies with "element 0 of tensors does not require grad". Forcing the
+        # embedding output to require grad reconnects it.
+        if hasattr(inner, "enable_input_require_grads"):
+            inner.enable_input_require_grads()
         model[0].auto_model = get_peft_model(inner, cfg)
         trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"  trainable: {trainable / 1e6:.1f}M ({100 * trainable / n_params:.2f}%)")
@@ -156,6 +163,9 @@ def main(argv=None) -> None:
         warmup_ratio=args.warmup_ratio,
         bf16=args.bf16 and torch.cuda.is_available(),
         gradient_checkpointing=grad_ckpt,
+        # Non-reentrant checkpointing handles frozen-parameter graphs correctly;
+        # the reentrant implementation is what raises on the LoRA setup above.
+        gradient_checkpointing_kwargs={"use_reentrant": False} if grad_ckpt else None,
         logging_steps=50,
         save_strategy="no",          # one checkpoint at the end; quota is tight
         report_to=[],
