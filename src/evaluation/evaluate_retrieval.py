@@ -53,8 +53,17 @@ def load_pairs(spec: str, split: str) -> List[Dict[str, str]]:
             return pq.read_table(spec).to_pylist()
         with open(spec, "r", encoding="utf-8") as f:
             return [json.loads(line) for line in f if line.strip()]
+    # Only the split's own files. `load_dataset(spec, split="test")` still
+    # fetches every file in the repo first: for ro-msmarco-divided that is
+    # 2.4 GB of train shards to reach a 7 MB test parquet, and it filled the
+    # account's disk quota once already.
     from datasets import load_dataset
-    return list(load_dataset(spec, split=split))
+    try:
+        pattern = f"hf://datasets/{spec}/data/{split}-*.parquet"
+        return list(load_dataset("parquet", data_files=pattern, split="train"))
+    except Exception as exc:
+        print(f"  (per-split load failed: {exc}; falling back to the full repo)")
+        return list(load_dataset(spec, split=split))
 
 
 def build_corpus(rows: Sequence[Dict[str, str]],
