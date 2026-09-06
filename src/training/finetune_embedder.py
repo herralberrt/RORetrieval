@@ -61,6 +61,28 @@ def load_rows(paths: List[str]) -> "datasets.Dataset":
     return concatenate_datasets(parts) if len(parts) > 1 else parts[0]
 
 
+def lora_targets(module) -> List[str]:
+    """Which linear layers to adapt, read off the model instead of assumed.
+
+    Hardcoding the decoder names (`q_proj`, `gate_proj`, …) works for Qwen3 and
+    fails outright on bge-m3, which is XLM-RoBERTa and calls them
+    `query`/`key`/`value`/`dense` - peft raises "Target modules not found"
+    rather than adapting nothing quietly, but only after the model is loaded.
+    Matching against the linear layers the model actually has covers both
+    families and whatever comes next.
+    """
+    import torch.nn as nn
+    names = {name.rsplit(".", 1)[-1]
+             for name, mod in module.named_modules() if isinstance(mod, nn.Linear)}
+    for group in (["q_proj", "k_proj", "v_proj", "o_proj",
+                   "gate_proj", "up_proj", "down_proj"],
+                  ["query", "key", "value", "dense"]):
+        hit = [n for n in group if n in names]
+        if len(hit) >= 3:
+            return hit
+    return sorted(names)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="Fine-tune an embedding model on (anchor, positive, negative).",
@@ -119,11 +141,9 @@ def main(argv=None) -> None:
         cfg = LoraConfig(
             r=args.lora_r, lora_alpha=args.lora_alpha, lora_dropout=0.05,
             bias="none", task_type="FEATURE_EXTRACTION",
-            # The attention and MLP projections; naming is shared by Qwen3 and
-            # most recent decoder stacks.
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
-                            "gate_proj", "up_proj", "down_proj"],
+            target_modules=lora_targets(inner),
         )
+        print(f"  LoRA targets: {', '.join(lora_targets(inner))}")
         # Gradient checkpointing recomputes each block's activations from its
         # inputs, and those inputs do not require grad when the base weights are
         # frozen - so the graph ends before it reaches the adapters and backward
