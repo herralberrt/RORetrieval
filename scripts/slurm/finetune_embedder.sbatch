@@ -31,6 +31,12 @@ MODEL="${MODEL:-BAAI/bge-m3}"
 SET="${SET:-bm25}"                 # bm25 | colbert
 BATCH="${BATCH:-}"                 # empty = per-model default below
 MAX_STEPS="${MAX_STEPS:-2000}"
+# LORA=1 forces the adapter path on a model that would otherwise train
+# fully. Used to separate "the data caused the out-of-domain drop" from
+# "the training recipe did": bge-m3 lost 0.097 nDCG on msmarco under a full
+# fine-tune, Qwen lost less under LoRA, and only holding the data fixed
+# while changing the recipe tells the two apart.
+LORA="${LORA:-}"
 EPOCHS="${EPOCHS:-1}"
 SEQ="${SEQ:-512}"
 OUTPUT="${OUTPUT:-}"
@@ -84,7 +90,8 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || tr
         --batch-size "$BATCH" \
         --epochs "$EPOCHS" \
         --max-steps "$MAX_STEPS" \
-        --max-seq-length "$SEQ"
+        --max-seq-length "$SEQ" \
+        ${LORA:+--lora}
 
 echo
 echo "=================================================================="
