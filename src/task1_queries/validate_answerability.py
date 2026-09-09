@@ -101,6 +101,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--sample", type=int, default=2000,
                    help="queries drawn at random; 0 judges every one")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--control", choices=["none", "shuffle"], default="none",
+                   help="'shuffle' pairs every query with a different "
+                        "document's passage. A judge that still answers DA is "
+                        "not discriminating, and a high DA rate on the real "
+                        "pairs would mean nothing - this is the arm that makes "
+                        "the main number interpretable")
     p.add_argument("--max-passage-chars", type=int, default=4000,
                    help="same cap the triplet builders index at, so the judge "
                         "sees the passage a retriever would have to match")
@@ -154,6 +160,18 @@ def main(argv=None) -> None:
         items = random.Random(args.seed).sample(items, args.sample)
         print(f"  judging a random sample of {len(items)}")
 
+    if args.control == "shuffle":
+        # Rotate the passages by one so no query keeps its own, and every
+        # passage is still a real document rather than noise.
+        rng = random.Random(args.seed + 1)
+        other = [i["passage"] for i in items]
+        rng.shuffle(other)
+        for item, passage in zip(items, other):
+            if passage == item["passage"] and len(items) > 1:
+                passage = next(p for p in other if p != item["passage"])
+            item["passage"] = passage
+        print("  CONTROL: every query paired with another document's passage")
+
     # Reuse the generator's backend so the chat template and the double-BOS
     # handling stay in one place.
     sys.argv = [sys.argv[0]]          # VLLMBackend reads an args object, not argv
@@ -199,7 +217,8 @@ def main(argv=None) -> None:
     print("\n" + "=" * 66)
     print("ANSWERABILITY OF THE GENERATED QUERIES")
     print("=" * 66)
-    print(f"  judge          : {args.model}")
+    print(f"  judge          : {args.model}"
+          + ("   [CONTROL: mispaired passages]" if args.control == "shuffle" else ""))
     print(f"  judged         : {judged} of {len(items)}"
           + (f"  ({counts['unparsed']} replies did not parse)" if counts["unparsed"] else ""))
     if judged:
