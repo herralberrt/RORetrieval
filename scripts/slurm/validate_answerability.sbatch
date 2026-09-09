@@ -63,7 +63,7 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || tr
         --model "$MODEL" \
         --sample "$SAMPLE" \
         --batch-size "$BATCH" \
-        --max-model-len "$MAX_LEN" \\
+        --max-model-len "$MAX_LEN" \
         --control "$CONTROL"
 
 echo "=================================================================="
