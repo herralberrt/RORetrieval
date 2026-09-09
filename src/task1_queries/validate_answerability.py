@@ -48,10 +48,16 @@ from gemma_query_generation import (  # noqa: E402
     DEFAULT_CATEGORIES_DIR, document_text, iter_documents,
 )
 
-# Asking for a verdict first and evidence second would let the model commit to
-# YES and then invent a quote to match. Evidence first makes the quote the
-# reason for the verdict rather than a decoration on it, and an explicit
-# "NEDETERMINAT" keeps a hedging model from being forced into a false YES.
+# Evidence first, verdict last: asking for the verdict first would let the model
+# commit to DA and then invent a quote to match, while this way the quote is the
+# reason for the verdict rather than a decoration on it.
+#
+# The cost of that ordering is that the verdict is what truncation eats first.
+# The initial run lost 148 of 2000 replies (7.4%) that way - every one of them
+# had a CITAT and no VERDICT, because the model quoted generously and ran out of
+# the 160-token budget before the last line. Hence the 25-word cap on the quote
+# and the larger default budget below; do not lower either without checking the
+# unparsed count.
 PROMPT = """Ai mai jos un PASAJ și o ÎNTREBARE.
 
 Sarcina ta: stabilește dacă întrebarea poate fi răspunsă FOLOSIND DOAR pasajul.
@@ -62,7 +68,7 @@ Reguli:
 - Dacă întrebarea se referă la „articol", „text" sau „document" fără să fie de sine stătătoare, verdictul este NU.
 
 Răspunde exact în formatul acesta, pe trei linii:
-CITAT: <fragmentul din pasaj care conține răspunsul, sau - dacă nu există>
+CITAT: <fragmentul din pasaj care conține răspunsul, cel mult 25 de cuvinte, sau - dacă nu există>
 RASPUNS: <răspunsul în cel mult 15 cuvinte, sau - dacă nu există>
 VERDICT: <DA sau NU>
 
@@ -112,7 +118,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "sees the passage a retriever would have to match")
     p.add_argument("--batch-size", type=int, default=64)
     p.add_argument("--max-model-len", type=int, default=4096)
-    p.add_argument("--max-new-tokens", type=int, default=160)
+    p.add_argument("--max-new-tokens", type=int, default=320,
+                   help="the verdict is the last line, so a tight budget "
+                        "silently drops it; 160 lost 7.4% of the first run")
     p.add_argument("--gpu-memory-utilization", type=float, default=0.85)
     p.add_argument("--tensor-parallel-size", type=int, default=1)
     p.add_argument("--dtype", default="bfloat16")
