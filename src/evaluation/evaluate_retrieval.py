@@ -164,6 +164,12 @@ def main(argv=None) -> None:
     p.add_argument("--name", default=None, help="label for the results file")
     p.add_argument("--output", default="results/retrieval_eval.jsonl")
     p.add_argument("--batch-size", type=int, default=64)
+    p.add_argument("--max-seq-length", type=int, default=0,
+                   help="0 keeps the model's own default (8192 for bge-m3), "
+                        "which is what the reported runs used. Training capped "
+                        "at 512 while this did not, so 44% of our passages were "
+                        "truncated in training and whole at inference - set it "
+                        "to match the training length to close that gap")
     p.add_argument("--max-queries", type=int, default=0)
     p.add_argument("--top-k", type=int, default=100)
     p.add_argument("--query-prompt", default="auto",
@@ -203,6 +209,9 @@ def main(argv=None) -> None:
     from sentence_transformers import SentenceTransformer
     kwargs = {"trust_remote_code": True} if args.trust_remote_code else {}
     model = SentenceTransformer(args.model, **kwargs)
+    if args.max_seq_length:
+        model.max_seq_length = args.max_seq_length
+    print(f"  max_seq_length: {model.max_seq_length}")
     if args.adapter:
         # A fine-tuned LoRA lives beside the base weights; load it onto the
         # transformer module rather than re-saving a merged 16 GB checkpoint.
@@ -230,6 +239,7 @@ def main(argv=None) -> None:
         "model": args.model, "adapter": args.adapter,
         "dataset": args.dataset, "split": args.split,
         "corpus_size": len(corpus), "distractors": len(extra),
+        "max_seq_length": model.max_seq_length,
         **{k: (round(v, 4) if isinstance(v, float) else v) for k, v in scores.items()},
     }
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
