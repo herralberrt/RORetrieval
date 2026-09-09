@@ -37,6 +37,12 @@ MAX_STEPS="${MAX_STEPS:-2000}"
 # fine-tune, Qwen lost less under LoRA, and only holding the data fixed
 # while changing the recipe tells the two apart.
 LORA="${LORA:-}"
+# GRAD_CKPT=1 trades compute for memory by recomputing activations. Needed at
+# SEQ=1024 with BATCH=64, which OOMs on an 80 GB A100 otherwise - and lowering
+# the batch instead would change how many in-batch negatives the loss sees,
+# which is the one thing that must stay fixed for the comparison to mean
+# anything.
+GRAD_CKPT="${GRAD_CKPT:-}"
 EPOCHS="${EPOCHS:-1}"
 SEQ="${SEQ:-512}"
 OUTPUT="${OUTPUT:-}"
@@ -91,7 +97,8 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || tr
         --epochs "$EPOCHS" \
         --max-steps "$MAX_STEPS" \
         --max-seq-length "$SEQ" \
-        ${LORA:+--lora}
+        ${LORA:+--lora} \
+        ${GRAD_CKPT:+--grad-checkpointing}
 
 echo
 echo "=================================================================="
