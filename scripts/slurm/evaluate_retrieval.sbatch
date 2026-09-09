@@ -79,6 +79,7 @@ for model in $MODELS; do
                 --output "$OUTPUT" \
                 --batch-size "$BATCH" \
                 --max-queries "$MAX_QUERIES" \
+                --max-seq-length "$SEQ" \
                 ${ADAPTER:+--adapter "$ADAPTER"} \
             || echo "  ✗ failed: $short_m × $short_d (continuing)"
     done
