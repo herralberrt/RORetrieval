@@ -1,266 +1,161 @@
-# Information Retrieval Pipeline for Romanian Text
+# RORetrieval
 
-Complete implementation of a 4-step IR pipeline for training multilingual retrieval models on Romanian corpus.
+Training data for Romanian retrieval models, and an honest measurement of what it
+does to them.
 
-## Quick Start
+The pipeline takes a 117k-document Romanian corpus, has Gemma 3 27B write a query
+for each document, mines hard negatives with two different retrievers, and
+fine-tunes two embedding models on the result. Both triplet sets are published on
+the HuggingFace Hub.
 
-### Prerequisites
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or: venv\Scripts\activate  # Windows
+## The headline result
 
-pip install -r src/requirements.txt
+Fine-tuning on these triplets **improves in-domain retrieval and degrades
+out-of-domain retrieval**, consistently, across every configuration tested.
+
+| | In-domain (our test split) | Out-of-domain (`ro-msmarco-divided`) |
+|---|---|---|
+| bge-m3, zero-shot | 0.838 | 0.707 |
+| bge-m3, fine-tuned | 0.905 | 0.610 |
+| Qwen3-Embedding-8B, zero-shot | 0.866 | 0.732 |
+| Qwen3-Embedding-8B, fine-tuned | 0.928 | 0.652 |
+
+nDCG@10. Training gains 0.03–0.07 in-domain and loses 0.07–0.10 out of it. No
+configuration is neutral.
+
+If the goal is a general-purpose Romanian retriever, these triplets — trained this
+way — make it worse. If the goal is this domain (news, folk stories, recipes), they
+improve it consistently.
+
+### What was ruled out
+
+The obvious explanation was catastrophic forgetting from a full one-epoch
+fine-tune at 2e-5. That hypothesis is **wrong**, and the control says so:
+
+- **LoRA control.** bge-m3 retrained through LoRA, touching 1.25% of parameters
+  instead of 100%, same data, everything else identical. In-domain gain identical
+  (0.906 vs 0.905); out-of-domain loss identical. The training recipe is not the
+  cause.
+- **Sequence-length control.** Re-run at sequence length 1024 with gradient
+  checkpointing. Same pattern, so truncation is not the cause either.
+- **Answerability.** 2,000 sampled (query, positive) pairs were checked by an LLM
+  against the document text: **99.45% are genuinely answerable** from their
+  positive. The positives are not the problem.
+
+What remains is the data distribution itself and the base model, not the recipe.
+
+## Pipeline
+
+**1. Corpus.** 117,313 documents from Romanian news outlets (Adevărul, Mediafax,
+ProTV, Digi24, ZF, Libertatea, Cotidianul, EVZ, Realitatea, Aleph), plus folk
+stories, recipes and a summarisation corpus. After near-duplicate grouping and
+boilerplate removal: 88,626 distinct texts, 87,170 indexed.
+
+**2. Query generation.** Gemma 3 27B Instruct reads each document and writes
+queries from its content — not from templates. Runs inside an Apptainer image on a
+SLURM cluster, bounded to a 2-hour slot with a clean stop and resume, because an
+80GB A100 is the minimum for the bf16 27B checkpoint.
+
+**3. Triplet mining.** The positive is known by construction — the query was
+generated from that document — so retrieval is only used for hard negatives. Two
+independent paths:
+
+- **BM25** (`build_triplets_bm25.py`): an Okapi BM25 inverted index in numpy, no
+  GPU. Negatives that share the query's rare terms.
+- **Late interaction** (`build_triplets_colbert.py`): real MaxSim over token
+  vectors — one vector per token, each query token matched to its best document
+  token.
+
+The two sets are nearly disjoint: **Jaccard overlap of 0.053 between their
+negatives, and 73% of shared queries have no negative in common.** That was the
+condition set before publishing the second set — had they produced similar
+negatives, the second would not have been worth having.
+
+**4. Training and evaluation.** bge-m3 (568M) and Qwen3-Embedding-8B (7.6B),
+evaluated zero-shot, then fine-tuned on each set and re-evaluated, in-domain and
+against `alina0195/ro-msmarco-divided`. 26 runs in total, all recorded in
+`results/retrieval_eval.jsonl`.
+
+## Published datasets
+
+| Dataset | Rows | Negatives from |
+|---|---|---|
+| [`PaulBurca2005/ro-retrieval-triplets`](https://huggingface.co/datasets/PaulBurca2005/ro-retrieval-triplets) | 80,363 | BM25 |
+| [`PaulBurca2005/ro-retrieval-triplets-late-interaction`](https://huggingface.co/datasets/PaulBurca2005/ro-retrieval-triplets-late-interaction) | 80,928 | MaxSim token interaction |
+
+Four columns each — `anchor`, `positive`, `negative`, `query_source` — following
+the `alina0195/ro-msmarco-divided` layout, with texts rather than document ids and
+one row per negative. Splits are grouped by duplicate group, so near-identical
+articles cannot straddle train and test.
+
+## Repository layout
+
+```
+src/
+├── data_prep/          Corpus download, manual additions, splitting
+├── task1_queries/      Gemma 3 query generation, quality metrics,
+│                       answerability validation, neighbour maps
+├── task2_triplets/     BM25 and late-interaction mining, filtering,
+│                       HF export and upload, inspection
+├── training/           Fine-tuning, including the LoRA path
+├── evaluation/         Retrieval evaluation, model comparison, IR pipeline
+├── indexing/           FAISS index building and search
+├── reporting/          HTML report to .docx, standard library only
+└── studies/            MS MARCO and MIRACL side studies
+
+containers/             Apptainer image (CUDA 12.4 + torch + vLLM + Gemma)
+scripts/slurm/          SLURM jobs for every stage
+data/categories/        The corpus, via Git LFS
+data/triplets/          Triplet statistics and readable samples
+results/                Evaluation runs, answerability check, report
 ```
 
-### Query generation with Gemma 3 (GPU)
+## Running it
 
-Queries are generated by an instruction-tuned Gemma 3 model that reads each
-document, not from templates. On a GPU cluster this runs inside the Apptainer
-image:
+The heavy stages need a GPU cluster. Everything is driven through SLURM scripts
+that read their configuration from the environment.
 
 ```bash
-bash containers/build.sh                    # build roretrieval.sif (needs fakeroot)
-source containers/env.sh                    # HF_TOKEN for the gated Gemma repo
+git lfs pull                                   # the corpus is 546 MB via LFS
+pip install -r requirements.txt
+
+bash containers/build.sh                       # build roretrieval.sif (needs fakeroot)
+cp containers/env.example containers/env.sh    # add your HF_TOKEN
+source containers/env.sh
 mkdir -p logs
-sbatch --partition=<gpu-partition> scripts/slurm/generate_queries.sbatch
+
+sbatch --partition=<gpu> scripts/slurm/generate_queries.sbatch
+sbatch --partition=<cpu> scripts/slurm/build_triplets_bm25.sbatch
+sbatch --partition=<gpu> scripts/slurm/finetune_embedder.sbatch
+sbatch --partition=<gpu> scripts/slurm/evaluate_retrieval.sbatch
 ```
 
-The job is bounded to a 2-hour slot: it stops cleanly at
-`QGEN_TIME_BUDGET_MIN` (default 110 min), streams results to disk, and
-resubmitting continues where it stopped. Full instructions, sizing table and
-troubleshooting: [containers/README.md](containers/README.md).
+Gemma 3 is gated: accept the licence for
+[`google/gemma-3-27b-it`](https://huggingface.co/google/gemma-3-27b-it) and create a
+read token. `containers/env.sh` is gitignored — never commit it.
 
-Statistics for the query set that came out of this - volume and quality per
-category, and what drives the variation - are in
-[data/queries/README.md](data/queries/README.md).
+The BM25 path needs no GPU and runs in roughly three and a half minutes on the
+plain CPU partition: 69,800 queries against an 87,170-document index.
 
-### Triplet mining (CPU)
-
-The positive is known by construction (the query was generated from it), so
-retrieval only mines hard negatives. The BM25 path also cleans the query set
-first - duplicated documents, boilerplate and self-referential queries - and
-needs no GPU:
+Inspect the prompts without loading a model, anywhere:
 
 ```bash
-mkdir -p logs
-sbatch --partition=haswell scripts/slurm/build_triplets_bm25.sbatch
+python3 -m src.task1_queries.gemma_query_generation --dry-run
 ```
 
-Roughly 2.5 minutes for 70k queries against a 117k-document corpus. The dense
-variant (`scripts/slurm/build_triplets.sbatch`, MiniLM + faiss) is kept for
-comparison; the two sets share almost no negatives, so they are complementary.
-Measured filter counts and hardness distributions:
-[data/triplets/README.md](data/triplets/README.md).
+## Documentation
 
-### Full Pipeline Execution
-```bash
-cd src
-python ir_pipeline.py --corpus data/corpus/all_documents_combined.jsonl --queries 1000 --epochs 3
-```
+- [`STRUCTURE.md`](STRUCTURE.md) — every module, what it does, and how to invoke it
+- [`data/triplets/README.md`](data/triplets/README.md) — the triplet dataset in
+  detail: record format, how the 69,800 queries became 21,891 triplets, how
+  negatives are chosen, measured distributions, known limitations, and what the
+  30 August review changed
+- [`containers/README.md`](containers/README.md) — building and running the image,
+  sizing, and cluster troubleshooting
+- [`results/raport_roretrieval.docx`](results/raport_roretrieval.docx) — the full
+  written report, in Romanian
 
-### Individual Steps
+## Branches
 
-**Step 1: Build Faiss Index and Generate Triplets**
-```bash
-python faiss_indexer.py --corpus data/corpus/all_documents_combined.jsonl --build
-python triplet_generator.py --corpus data/corpus/all_documents_combined.jsonl --queries 1000
-```
-
-**Step 2: Evaluate Quality Metrics**
-```bash
-python quality_metrics.py --triplets results/triplets/triplets.jsonl
-```
-
-**Step 3: Split Data into Train/Val/Test**
-```bash
-python data_splitter.py --triplets results/triplets/triplets.jsonl
-```
-
-**Step 4: Baseline Evaluation**
-```bash
-python evaluate_models.py --corpus data/corpus/all_documents_combined.jsonl --triplets results/splits/test_triplets.jsonl
-```
-
-**Step 5: Train Model**
-```bash
-python train_model.py --train-triplets results/splits/train_triplets.jsonl --val-triplets results/splits/val_triplets.jsonl --epochs 3
-```
-
-## Pipeline Architecture
-
-### 1. Triplet Generation
-- **Faiss Indexer**: Builds semantic search index using multilingual embeddings
-- **Query Generator**: Gemma 3 generates Romanian queries from the document text
-  (`src/task1_queries/gemma_query_generation.py`)
-- **Triplet Generator**: Mines hard negative passages using semantic similarity
-
-### 2. Quality Metrics
-- Lexical overlap (Jaccard similarity)
-- Token-level analysis
-- Content statistics (length, diversity)
-- Difficulty scoring based on embedding distance
-
-### 3. Data Splitting
-- 70% training triplets
-- 15% validation triplets  
-- 15% test triplets
-- Reproducible with fixed random seed
-
-### 4. Baseline Evaluation
-- Uses pretrained multilingual-MiniLM-L12-v2 model
-- Computes retrieval metrics: nDCG@10, MRR, P@10, R@10, MAP
-- Evaluates on test set
-
-### 5. Model Training
-- Triplet loss with margin=0.5
-- Configurable epochs and batch size
-- Validates on val set after each epoch
-- Tracks training history
-
-## Output Structure
-
-```
-results/
-├── faiss/
-│   ├── corpus.index          # Semantic index
-│   └── id_mapping.json       # Document ID mapping
-├── triplets/
-│   └── triplets.jsonl        # Generated triplets
-├── quality_metrics/
-│   ├── triplet_scores.jsonl  # Per-triplet metrics
-│   └── quality_report.json   # Summary report
-├── splits/
-│   ├── train_triplets.jsonl  # 70% training data
-│   ├── val_triplets.jsonl    # 15% validation data
-│   ├── test_triplets.jsonl   # 15% test data
-│   └── split_stats.json      # Split statistics
-├── evaluation/
-│   ├── metrics.jsonl         # Per-query metrics
-│   └── evaluation_report.json# Summary evaluation
-├── trained_model/
-│   └── training_history.json # Training loss history
-├── comparison/
-│   └── comparison_report.json# Baseline vs fine-tuned comparison
-└── pipeline_summary.json     # Pipeline execution summary
-```
-
-## Triplet Format
-
-Each triplet contains:
-```json
-{
-  "query_id": "q_000000",
-  "query": "Cum se face escribi un articol?",
-  "positive_doc_id": "cc_001959",
-  "positive_title": "Tutorial: Cum să devii mai productiv",
-  "positive_content": "...",
-  "negative_doc_id": "cc_002311",
-  "negative_title": "Tutorial: Cum să construiești o echipă",
-  "negative_content": "...",
-  "difficulty": 16.66
-}
-```
-
-## Corpus Statistics
-
-- **Total Documents**: 2818
-  - Recipes (HuggingFace): 818
-  - Synthetic News: 1000
-  - Synthetic Web Documents: 1000
-
-## Model Configuration
-
-- **Embedding Model**: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
-- **Embedding Dimension**: 384
-- **Index Type**: FAISS IndexFlatL2 (L2 distance)
-- **Loss Function**: Triplet Margin Loss
-- **Margin**: 0.5
-
-## Performance Metrics
-
-### Baseline (Pretrained Model)
-- nDCG@10: 0.2201
-- MRR: 1.0000
-- P@10: 0.1000
-- R@10: 1.0000
-- MAP: 1.0000
-
-### Timing Estimates
-- Faiss Indexing: ~2 minutes (2818 documents)
-- Triplet Generation: ~1 minute (1000 queries)
-- Quality Metrics: <1 second
-- Baseline Evaluation: ~15 seconds
-- Model Training: ~15 minutes per epoch (3 epochs = 45 minutes)
-
-## Language Support
-
-Currently configured for Romanian (ro). To adapt for other languages:
-1. Change corpus source in `download_datasets.py`
-2. Update query templates in `triplet_generator.py`
-3. The multilingual model supports 50+ languages
-
-## Files Reference
-
-| File | Purpose |
-|------|---------|
-| `ir_pipeline.py` | Main pipeline orchestrator |
-| `faiss_indexer.py` | Semantic index building & searching |
-| `triplet_generator.py` | Query and triplet generation |
-| `quality_metrics.py` | Triplet quality evaluation |
-| `data_splitter.py` | Train/val/test splitting |
-| `evaluate_models.py` | Retrieval evaluation metrics |
-| `train_model.py` | Model training with triplet loss |
-| `model_comparison.py` | Baseline vs fine-tuned comparison |
-| `utils.py` | Shared utilities |
-
-## Advanced Usage
-
-### Custom Model
-```bash
-python train_model.py \
-  --model "your-model-name" \
-  --train-triplets results/splits/train_triplets.jsonl \
-  --epochs 5 \
-  --batch-size 16
-```
-
-### Adjust Query Count
-```bash
-python triplet_generator.py --queries 5000 --hard-negatives 5
-```
-
-### Change Split Ratio
-```bash
-python data_splitter.py --train-ratio 0.8 --val-ratio 0.1
-```
-
-## Troubleshooting
-
-**Out of Memory**: Reduce batch size in `train_model.py`
-```bash
-python train_model.py --batch-size 16
-```
-
-**Index Not Found**: Rebuild Faiss index
-```bash
-python faiss_indexer.py --corpus data/corpus/all_documents_combined.jsonl --build
-```
-
-**Slow Evaluation**: Use fewer test triplets
-```bash
-python evaluate_models.py --triplets results/splits/test_triplets_small.jsonl
-```
-
-## Future Enhancements
-
-1. Multi-GPU training support
-2. Hard negative mining strategies
-3. Negative sampling methods
-4. Fine-tuning schedules
-5. Cross-lingual evaluation
-6. Production model serialization
-
-## License
-
-This project is part of the NLPSummerSchool RORetrieval initiative.
+`gemma3-27b` is the working branch and carries the current pipeline, the published
+datasets and all evaluation results. `main` predates them.
